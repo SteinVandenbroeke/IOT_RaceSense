@@ -1,12 +1,11 @@
 import time
-from pycoproc import Pycoproc
-from L76GNSS import L76GNSS
 from CarData import CarData
 
 # 1. Initialize the Pytrack 2 board using the coprocessor library
 print("Initializing Pytrack 2...")
-cardata = CarData(pycoproc)
+cardata.off_threaded_sensor_fetching(True)
 
 while True:
     print(cardata.get())
-    time.sleep(5)
+    #time.sleep(0.01)
+    time.sleep(0.01)
