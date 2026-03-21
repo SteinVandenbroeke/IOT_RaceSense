@@ -1,6 +1,7 @@
 <script lang="ts">
 	import SensorCard from '../components/SensorCard.svelte';
-	import TyreWidget from '../components/Tyres.svelte';
+	import TyreWidget from '../components/Tires.svelte';
+	import TireSet from '../components/tires/TireSet.svelte';
 </script>
 
 <section aria-labelledby="live-telemetry-heading" class="space-y-8 max-w-7xl mx-auto">
@@ -34,5 +35,6 @@
 				<TyreWidget title="Rear Right (RR)" temp={97} tempStat="normal" pressure={0.8} presStat="flat" />
 			</li>
 		</ul>
+		<TireSet/>
 	</div>
 </section>
