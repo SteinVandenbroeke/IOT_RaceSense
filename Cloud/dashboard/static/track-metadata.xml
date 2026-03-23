@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<circuits>
+    <circuit id="albert_park">
+        <name>Albert Park Grand Prix Circuit</name>
+        <city>Melbourne</city>
+        <country>Australia</country>
+        <length_km>5.278</length_km>
+        <corners>14</corners>
+        <first_gp>1996</first_gp>
+        <races_held>28</races_held>
+        <lap_record>
+            <time>1:20.260</time>
+            <driver>Charles Leclerc</driver>
+            <year>2024</year>
+        </lap_record>
+        <svg_path>/tracks/albert_park</svg_path>
+    </circuit>
+
+    <circuit id="shanghai">
+        <name>Shanghai International Circuit</name>
+        <city>Shanghai</city>
+        <country>China</country>
+        <length_km>5.451</length_km>
+        <corners>16</corners>
+        <first_gp>2004</first_gp>
+        <races_held>17</races_held>
+        <lap_record>
+            <time>1:32.238</time>
+            <driver>Michael Schumacher</driver>
+            <year>2004</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="suzuka">
+        <name>Suzuka Circuit</name>
+        <city>Suzuka</city>
+        <country>Japan</country>
+        <length_km>5.807</length_km>
+        <corners>18</corners>
+        <first_gp>1987</first_gp>
+        <races_held>35</races_held>
+        <lap_record>
+            <time>1:30.983</time>
+            <driver>Lewis Hamilton</driver>
+            <year>2019</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="bahrain">
+        <name>Bahrain International Circuit</name>
+        <city>Sakhir</city>
+        <country>Bahrain</country>
+        <length_km>5.412</length_km>
+        <corners>15</corners>
+        <first_gp>2004</first_gp>
+        <races_held>20</races_held>
+        <lap_record>
+            <time>1:31.447</time>
+            <driver>Pedro de la Rosa</driver>
+            <year>2005</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="jeddah">
+        <name>Jeddah Corniche Circuit</name>
+        <city>Jeddah</city>
+        <country>Saudi Arabia</country>
+        <length_km>6.174</length_km>
+        <corners>27</corners>
+        <first_gp>2021</first_gp>
+        <races_held>4</races_held>
+        <lap_record>
+            <time>1:30.734</time>
+            <driver>Lewis Hamilton</driver>
+            <year>2021</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="miami">
+        <name>Miami International Autodrome</name>
+        <city>Miami</city>
+        <country>USA</country>
+        <length_km>5.410</length_km>
+        <corners>19</corners>
+        <first_gp>2022</first_gp>
+        <races_held>3</races_held>
+        <lap_record>
+            <time>1:31.361</time>
+            <driver>Max Verstappen</driver>
+            <year>2023</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="villeneuve">
+        <name>Circuit Gilles Villeneuve</name>
+        <city>Montreal</city>
+        <country>Canada</country>
+        <length_km>4.361</length_km>
+        <corners>14</corners>
+        <first_gp>1978</first_gp>
+        <races_held>42</races_held>
+        <lap_record>
+            <time>1:13.078</time>
+            <driver>Valtteri Bottas</driver>
+            <year>2019</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="monaco">
+        <name>Circuit de Monaco</name>
+        <city>Monte-Carlo</city>
+        <country>Monaco</country>
+        <length_km>3.337</length_km>
+        <corners>19</corners>
+        <first_gp>1929</first_gp>
+        <races_held>79</races_held>
+        <lap_record>
+            <time>1:12.909</time>
+            <driver>Lewis Hamilton</driver>
+            <year>2021</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="catalunya">
+        <name>Circuit de Barcelona-Catalunya</name>
+        <city>Montmeló</city>
+        <country>Spain</country>
+        <length_km>4.675</length_km>
+        <corners>16</corners>
+        <first_gp>1991</first_gp>
+        <races_held>33</races_held>
+        <lap_record>
+            <time>1:18.149</time>
+            <driver>Max Verstappen</driver>
+            <year>2021</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="red_bull_ring">
+        <name>Red Bull Ring</name>
+        <city>Spielberg</city>
+        <country>Austria</country>
+        <length_km>4.318</length_km>
+        <corners>10</corners>
+        <first_gp>1970</first_gp>
+        <races_held>36</races_held>
+        <lap_record>
+            <time>1:05.619</time>
+            <driver>Carlos Sainz</driver>
+            <year>2020</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="silverstone">
+        <name>Silverstone Circuit</name>
+        <city>Silverstone</city>
+        <country>Great Britain</country>
+        <length_km>5.891</length_km>
+        <corners>18</corners>
+        <first_gp>1950</first_gp>
+        <races_held>57</races_held>
+        <lap_record>
+            <time>1:27.097</time>
+            <driver>Max Verstappen</driver>
+            <year>2020</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="spa">
+        <name>Circuit de Spa-Francorchamps</name>
+        <city>Spa</city>
+        <country>Belgium</country>
+        <length_km>7.004</length_km>
+        <corners>19</corners>
+        <first_gp>1925</first_gp>
+        <races_held>55</races_held>
+        <lap_record>
+            <time>1:46.286</time>
+            <driver>Valtteri Bottas</driver>
+            <year>2018</year>
+        </lap_record>
+        <svg_path>/tracks/spa_francorchamps.svg</svg_path>
+    </circuit>
+
+    <circuit id="hungaroring">
+        <name>Hungaroring</name>
+        <city>Budapest</city>
+        <country>Hungary</country>
+        <length_km>4.381</length_km>
+        <corners>14</corners>
+        <first_gp>1986</first_gp>
+        <races_held>38</races_held>
+        <lap_record>
+            <time>1:16.627</time>
+            <driver>Lewis Hamilton</driver>
+            <year>2020</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="zandvoort">
+        <name>Circuit Zandvoort</name>
+        <city>Zandvoort</city>
+        <country>Netherlands</country>
+        <length_km>4.259</length_km>
+        <corners>14</corners>
+        <first_gp>1952</first_gp>
+        <races_held>31</races_held>
+        <lap_record>
+            <time>1:11.097</time>
+            <driver>Lewis Hamilton</driver>
+            <year>2021</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="monza">
+        <name>Autodromo Nazionale Monza</name>
+        <city>Monza</city>
+        <country>Italy</country>
+        <length_km>5.793</length_km>
+        <corners>11</corners>
+        <first_gp>1922</first_gp>
+        <races_held>72</races_held>
+        <lap_record>
+            <time>1:21.046</time>
+            <driver>Rubens Barrichello</driver>
+            <year>2004</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="madrid">
+        <name>Madring</name>
+        <city>Madrid</city>
+        <country>Spain</country>
+        <length_km>5.470</length_km>
+        <corners>22</corners>
+        <first_gp>2026</first_gp>
+        <races_held>1</races_held>
+        <lap_record>
+            <time>TBD</time>
+            <driver>TBD</driver>
+            <year>2026</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="baku">
+        <name>Baku City Circuit</name>
+        <city>Baku</city>
+        <country>Azerbaijan</country>
+        <length_km>6.003</length_km>
+        <corners>20</corners>
+        <first_gp>2016</first_gp>
+        <races_held>7</races_held>
+        <lap_record>
+            <time>1:43.009</time>
+            <driver>Charles Leclerc</driver>
+            <year>2019</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="marina_bay">
+        <name>Marina Bay Street Circuit</name>
+        <city>Singapore</city>
+        <country>Singapore</country>
+        <length_km>5.063</length_km>
+        <corners>23</corners>
+        <first_gp>2008</first_gp>
+        <races_held>15</races_held>
+        <lap_record>
+            <time>1:41.905</time>
+            <driver>Kevin Magnussen</driver>
+            <year>2018</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="americas">
+        <name>Circuit of the Americas</name>
+        <city>Austin</city>
+        <country>USA</country>
+        <length_km>5.513</length_km>
+        <corners>20</corners>
+        <first_gp>2012</first_gp>
+        <races_held>11</races_held>
+        <lap_record>
+            <time>1:36.169</time>
+            <driver>Charles Leclerc</driver>
+            <year>2019</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="rodriguez">
+        <name>Autódromo Hermanos Rodríguez</name>
+        <city>Mexico City</city>
+        <country>Mexico</country>
+        <length_km>4.304</length_km>
+        <corners>17</corners>
+        <first_gp>1963</first_gp>
+        <races_held>23</races_held>
+        <lap_record>
+            <time>1:17.774</time>
+            <driver>Valtteri Bottas</driver>
+            <year>2021</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="interlagos">
+        <name>Autódromo José Carlos Pace</name>
+        <city>São Paulo</city>
+        <country>Brazil</country>
+        <length_km>4.309</length_km>
+        <corners>15</corners>
+        <first_gp>1973</first_gp>
+        <races_held>48</races_held>
+        <lap_record>
+            <time>1:10.540</time>
+            <driver>Valtteri Bottas</driver>
+            <year>2018</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="vegas">
+        <name>Las Vegas Strip Street Circuit</name>
+        <city>Las Vegas</city>
+        <country>USA</country>
+        <length_km>6.201</length_km>
+        <corners>17</corners>
+        <first_gp>2023</first_gp>
+        <races_held>2</races_held>
+        <lap_record>
+            <time>1:35.490</time>
+            <driver>Oscar Piastri</driver>
+            <year>2023</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="losail">
+        <name>Losail International Circuit</name>
+        <city>Al Daayen</city>
+        <country>Qatar</country>
+        <length_km>5.419</length_km>
+        <corners>16</corners>
+        <first_gp>2021</first_gp>
+        <races_held>3</races_held>
+        <lap_record>
+            <time>1:23.196</time>
+            <driver>Max Verstappen</driver>
+            <year>2023</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+
+    <circuit id="yas_marina">
+        <name>Yas Marina Circuit</name>
+        <city>Abu Dhabi</city>
+        <country>UAE</country>
+        <length_km>5.281</length_km>
+        <corners>16</corners>
+        <first_gp>2009</first_gp>
+        <races_held>15</races_held>
+        <lap_record>
+            <time>1:26.103</time>
+            <driver>Max Verstappen</driver>
+            <year>2021</year>
+        </lap_record>
+        <svg_path></svg_path>
+    </circuit>
+</circuits>

@@ -2,6 +2,11 @@
 	import SensorCard from '../components/SensorCard.svelte';
 	import TyreWidget from '../components/Tires.svelte';
 	import TireSet from '../components/tires/TireSet.svelte';
+	import Gauge from '../components/gauges/analog-gauge.svelte';
+	import Speedometer from '../components/gauges/speedometer.svelte';
+	import Tachometer from '../components/gauges/tachometer.svelte';
+	import GMeter from '../components/g-meter.svelte';
+	import Trackmap from '../components/trackmap.svelte';
 </script>
 
 <section aria-labelledby="live-telemetry-heading" class="space-y-8 max-w-7xl mx-auto">
@@ -37,4 +42,68 @@
 		</ul>
 		<TireSet/>
 	</div>
+
+	<div>
+		<h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Live Dials</h2>
+		<ul class="grid grid-cols-1 md:grid-cols-3">
+			
+			<li>
+				<Gauge 
+					value={184} 
+					max={300} 
+					unit="km/h" 
+					stepSize={30} 
+					intermediateTicks={2}
+					demo={true}
+				/>
+			</li>
+
+			<li>
+				<Gauge 
+					value={6.4} 
+					max={7.5}
+					precision={1} 
+					stepSize={1}
+					intermediateTicks={4}
+					unit="rpm{'\n'}x1000" 
+					ranges={[
+						{ min: 0, max: 5.99, colorClass: 'text-white' },
+						{ min: 6, max: 6.99, colorClass: 'text-orange-500' },
+						{ min: 7, max: 7.5, colorClass: 'text-red-500' }
+					]}
+					demo={true}
+				/>
+			</li>
+			<li>
+				<GMeter x={0.5} y={-1.2} maxG={3} demo={true}/>
+			</li>
+		</ul>
+	</div>
+	<div>
+    <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Digital Cluster</h2>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="col-span-1">
+            <Speedometer 
+                value={184} 
+                unit="km/h" 
+            />
+        </div>
+
+        <div class="col-span-1 lg:col-span-2">
+            <Tachometer 
+                value={6400} 
+                max={7500}
+                segments={75}
+				stepSize={500}
+                ranges={[
+                    { min: 0, max: 5999, colorClass: 'bg-white' },
+                    { min: 6000, max: 6999, colorClass: 'bg-orange-500' },
+                    { min: 7000, max: 7500, colorClass: 'bg-red-500' }
+                ]}
+				demo={true}
+            />
+        </div>
+		<Trackmap/>
+    </div>
+</div>
 </section>
