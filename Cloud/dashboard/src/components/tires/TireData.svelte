@@ -8,63 +8,48 @@
 
     let { speed, pressure, temperatures, getTempColor }: Props = $props();
 
-    let isCollapsed = $state<boolean>(true);
-
-    // Moved the labeling helper directly into the card
+    // Helper to determine the correct label based on the number of layers
     function getLayerLabel(index: number, total: number) {
-        if (total === 1) return 'Surface';
-        if (total === 2) return index === 0 ? 'Surface' : 'Core';
+        if (total === 1) return 'SURF';
+        if (total === 2) return index === 0 ? 'SURF' : 'CORE';
         if (total === 3) {
-            if (index === 0) return 'Surface';
-            if (index === 1) return 'Middle';
-            return 'Core';
+            if (index === 0) return 'SURF';
+            if (index === 1) return 'MID';
+            return 'CORE';
         }
         return '';
     }
 </script>
 
-<div class="flex flex-col gap-1 font-mono text-sm bg-gray-900 text-white p-3 rounded-md shadow-lg min-w-[150px]">
+<div class="flex flex-col gap-1.5 w-28 shrink-0">
     
-    <div class="flex justify-between">
-        <span class="text-gray-400">Wheel Speed:</span> 
-        <span>{Math.round(speed)} km/h</span>
-    </div>
-    
-    <div class="flex justify-between border-b border-gray-700 pb-2 mb-1">
-        <span class="text-gray-400">Pressure:</span> 
-        <span>{pressure.toFixed(1)} psi</span>
-    </div>
-
-    {#if temperatures.length === 1}
-        
-        <div class="flex justify-between pl-2">
-            <span>{getLayerLabel(0, 1)}: </span> 
-            <span style="color: {getTempColor(temperatures[0])}">{Math.round(temperatures[0])}°C</span>
-        </div>
-
-    {:else}
-
-        <button 
-            class="flex justify-between items-center w-full text-left text-gray-400 hover:text-white cursor-pointer transition-colors pt-1 pb-1"
-            onclick={() => isCollapsed = !isCollapsed}
-        >
-            <span>Temperatures</span>
-            <span class="text-xs">{isCollapsed ? '▼' : '▲'}</span>
-        </button>
-
-        {#if isCollapsed}
-            <div class="flex justify-between pl-2">
-                <span>{getLayerLabel(0, temperatures.length)}: </span> 
-                <span style="color: {getTempColor(temperatures[0])}">{Math.round(temperatures[0])}°C</span>
+    <div class="grid grid-cols-2 gap-2 border-b border-zinc-800/80 pb-1.5">
+        <div>
+            <span class="text-[9px] font-bold text-zinc-600 uppercase block tracking-wider leading-none mb-0.5">Speed</span>
+            <div class="font-mono text-xs font-bold text-white leading-none tabular-nums">
+                {Math.round(speed)}<span class="text-[8px] text-zinc-500 font-normal ml-0.5">km/h</span>
             </div>
-        {:else}
+        </div>
+        <div>
+            <span class="text-[9px] font-bold text-zinc-600 uppercase block tracking-wider leading-none mb-0.5">Press</span>
+            <div class="font-mono text-xs font-bold text-white leading-none tabular-nums">
+                {pressure.toFixed(1)}<span class="text-[8px] text-zinc-500 font-normal ml-0.5">psi</span>
+            </div>
+        </div>
+    </div>
+
+<div>
+        <span class="text-[9px] font-bold text-zinc-600 uppercase block tracking-wider leading-none mb-1.5">Temperatures</span>
+        <div class="flex justify-between font-mono text-xs font-bold tabular-nums">
             {#each temperatures as temp, i}
-                <div class="flex justify-between pl-2">
-                    <span>{getLayerLabel(i, temperatures.length)}:</span> 
-                    <span style="color: {getTempColor(temp)}">{Math.round(temp)}°C</span>
+                <div class="flex flex-col items-center">
+                    <span class="text-[8px] text-zinc-500 mb-0.5 leading-none">{getLayerLabel(i, temperatures.length)}</span>
+                    
+                    <span style="color: {getTempColor(temp)}; text-shadow: 0 0 4px rgba(0,0,0,0.5);">
+                        {Math.round(temp)}°
+                    </span>
                 </div>
             {/each}
-        {/if}
-
-    {/if}
+        </div>
+    </div>
 </div>

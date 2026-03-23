@@ -1,27 +1,37 @@
 <script lang="ts">
     import Tire from './Tire.svelte';
 
-    // Allow the developer to specify the layout style
-    // 'horizontal' = I T   T I
-    // 'vertical'   = I I over T T
     interface Props {
-        layout?: 'horizontal' | 'vertical';
+        // Added 'auto' as the default behavior
+        layout?: 'horizontal' | 'vertical' | 'auto';
         layerCount?: number;
     }
 
-    let { layout = 'horizontal', layerCount = 3 }: Props = $props();
+    let { layout = 'auto', layerCount = 3 }: Props = $props();
+
+    // Default to a desktop width so it renders correctly on first load
+    let innerWidth = $state(1024); 
+
+    // Automatically switch to 'vertical' if the screen is smaller than 768px
+    let activeLayout = $derived(
+        layout === 'auto' 
+            ? (innerWidth < 768 ? 'vertical' : 'horizontal') 
+            : layout
+    );
 </script>
 
-<div class="grid grid-cols-2 gap-x-12 gap-y-16 p-8 max-w-4xl mx-auto bg-gray-950 rounded-xl shadow-2xl">
+<svelte:window bind:innerWidth />
 
-    {#if layout === 'horizontal'}
+<div class="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-6 p-4 sm:p-5 max-w-2xl mx-auto">
+
+    {#if activeLayout === 'horizontal'}
         <Tire statsPosition="left" {layerCount} />
         <Tire statsPosition="right" {layerCount} />
 
         <Tire statsPosition="left" {layerCount} />
         <Tire statsPosition="right" {layerCount} />
 
-    {:else if layout === 'vertical'}
+    {:else}
         <Tire statsPosition="top" {layerCount} />
         <Tire statsPosition="top" {layerCount} />
 

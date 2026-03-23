@@ -8,7 +8,7 @@
 
     let {
         title = "Track Map",
-        xmlUrl = "/track-metadata.xml", // Back to your working static path!
+        xmlUrl = "/track-metadata.xml",
         progress = 0,
         demo = false
     }: Props = $props();
@@ -136,11 +136,11 @@
     }
 </script>
 
-<article class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col shadow-lg w-full h-full min-h-[400px]">
+<article class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col shadow-lg w-full h-full min-h-[300px]">
     {#if activeCircuit}
-        <div class="flex justify-between items-start mb-4">
+        <div class="flex justify-between items-start mb-2">
             <div class="flex-1">
-                <h3 class="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-1">{title}</h3>
+                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-1">{title}</h3>
                 <div class="flex items-center gap-2">
                     <img 
                         src="https://flagcdn.com/w20/{getCountryCode(activeCircuit.country)}.png" 
@@ -159,23 +159,23 @@
             </div>
             
             <div class="text-right shrink-0">
-                <span class="text-[10px] font-mono text-zinc-500 block uppercase">Lap Progress</span>
-                <span class="text-emerald-400 font-mono font-bold text-lg leading-none tracking-tighter">
+                <span class="text-[9px] font-mono text-zinc-500 block uppercase">Lap Progress</span>
+                <span class="text-emerald-400 font-mono font-bold text-base leading-none tracking-tighter">
                     {(displayProgress * 100).toFixed(1)}%
                 </span>
             </div>
         </div>
 
-        <div class="relative w-full flex items-center justify-center flex-1 p-6 bg-zinc-950/50 rounded-lg border border-zinc-800/50 mb-4 overflow-hidden">
+        <div class="relative w-full flex items-center justify-center flex-1 py-2 overflow-hidden">
             {#if activePathString}
-                <svg viewBox={activeViewBox} class="w-full h-full max-h-62.5 overflow-visible drop-shadow-lg">
+                <svg viewBox={activeViewBox} class="w-full h-full max-h-[250px] overflow-visible drop-shadow-lg">
                     <path
                         bind:this={pathElement}
                         d={activePathString}
                         fill="none"
                         stroke="currentColor"
                         stroke-width="3"
-                        class="text-zinc-600"
+                        class="text-zinc-500"
                         stroke-linecap="round"
                         stroke-linejoin="round"
                     />
@@ -194,7 +194,24 @@
             {/if}
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-auto border-t border-zinc-800/50 pt-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-auto border-t border-zinc-800/50 pt-3">
+            <div>
+                <span class="text-[9px] font-bold text-zinc-600 uppercase block tracking-wider">Length</span>
+                <span class="text-zinc-300 font-mono text-xs">{activeCircuit.lengthKm} km</span>
             </div>
+            <div>
+                <span class="text-[9px] font-bold text-zinc-600 uppercase block tracking-wider">Turns</span>
+                <span class="text-zinc-300 font-mono text-xs">{activeCircuit.corners}</span>
+            </div>
+            <div class="col-span-2 md:col-span-2">
+                <span class="text-[9px] font-bold text-zinc-600 uppercase block tracking-wider flex items-center gap-1">
+                    Lap Record <span class="text-zinc-700">({activeCircuit.lapRecord.year})</span>
+                </span>
+                <div class="flex items-baseline justify-between">
+                    <span class="text-emerald-400 font-mono text-xs font-bold">{activeCircuit.lapRecord.time}</span>
+                    <span class="text-zinc-500 font-mono text-[10px] truncate ml-2">{activeCircuit.lapRecord.driver}</span>
+                </div>
+            </div>
+        </div>
     {/if}
 </article>

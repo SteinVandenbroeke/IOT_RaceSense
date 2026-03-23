@@ -50,7 +50,7 @@
     });
 </script>
 
-<div class="m-8 flex items-center justify-center gap-6
+<div class="m-2 flex items-center justify-center gap-4
     {statsPosition === 'left' ? 'flex-row-reverse' : ''}
     {statsPosition === 'right' ? 'flex-row' : ''}
     {statsPosition === 'top' ? 'flex-col-reverse' : ''}

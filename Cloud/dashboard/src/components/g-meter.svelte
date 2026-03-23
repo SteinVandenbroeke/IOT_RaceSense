@@ -51,22 +51,19 @@
     let dotY = $derived(50 - (clampedY / renderLimit) * 50);
 </script>
 
-<article class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col items-center shadow-lg transition-colors duration-300 relative w-full aspect-square max-w-sm mx-auto">
-    <div class="w-full flex justify-end items-start absolute top-5 left-5 right-5 z-10">        
-        <div class="text-right bg-zinc-900/80 p-1 rounded">
-            <div class="text-[10px] font-mono text-zinc-500">
-                Lat (X): <span class="text-white">{displayX.toFixed(2)}</span>
+<article class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col items-center shadow-lg transition-colors duration-300 relative w-full aspect-square max-w-sm mx-auto">
+    <div class="w-full flex justify-between items-start absolute top-4 left-4 right-4 z-10">        
+        <div class="text-right bg-zinc-900/80 px-1.5 py-0.5 rounded">
+            <div class="text-[9px] font-mono text-zinc-500">
+                Lat: <span class="text-white">{displayX.toFixed(2)}</span>
             </div>
-            <div class="text-[10px] font-mono text-zinc-500">
-                Lon (Y): <span class="text-white">{displayY.toFixed(2)}</span>
-            </div>
-            <div class="text-[10px] font-mono text-zinc-500">
-                Vert (Z): <span class="text-white">{displayZ.toFixed(2)}</span>
+            <div class="text-[9px] font-mono text-zinc-500">
+                Lon: <span class="text-white">{displayY.toFixed(2)}</span>
             </div>
         </div>
     </div>
 
-    <div class="relative w-full h-full mt-6 p-4">
+    <div class="relative w-full h-full mt-4">
         <svg viewBox="0 0 100 100" class="w-full h-full overflow-visible">
             
             <line x1="50" y1="0" x2="50" y2="100" stroke="currentColor" stroke-width="0.5" class="text-zinc-700" />
@@ -77,7 +74,6 @@
                 {@const radius = (gLevel / renderLimit) * 50}
                 
                 <circle cx="50" cy="50" r={radius} fill="none" stroke="currentColor" stroke-width="0.5" class="text-zinc-700" />
-                
                 <text x="50" y={50 - radius - 1} text-anchor="middle" dominant-baseline="baseline" class="text-[4px] fill-zinc-500 font-mono font-bold">
                     {gLevel}G
                 </text>

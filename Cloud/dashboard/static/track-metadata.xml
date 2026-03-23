@@ -13,7 +13,7 @@
             <driver>Charles Leclerc</driver>
             <year>2024</year>
         </lap_record>
-        <svg_path>/tracks/albert_park</svg_path>
+        <svg_file>/tracks/albert_park.svg</svg_file>
     </circuit>
 
     <circuit id="shanghai">
@@ -29,7 +29,7 @@
             <driver>Michael Schumacher</driver>
             <year>2004</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/shanghai.svg</svg_file>
     </circuit>
 
     <circuit id="suzuka">
@@ -45,7 +45,7 @@
             <driver>Lewis Hamilton</driver>
             <year>2019</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/suzuka.svg</svg_file>
     </circuit>
 
     <circuit id="bahrain">
@@ -61,7 +61,7 @@
             <driver>Pedro de la Rosa</driver>
             <year>2005</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/bahrein.svg</svg_file>
     </circuit>
 
     <circuit id="jeddah">
@@ -77,7 +77,7 @@
             <driver>Lewis Hamilton</driver>
             <year>2021</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/jeddah.svg</svg_file>
     </circuit>
 
     <circuit id="miami">
@@ -93,7 +93,7 @@
             <driver>Max Verstappen</driver>
             <year>2023</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/miami.svg</svg_file>
     </circuit>
 
     <circuit id="villeneuve">
@@ -109,7 +109,7 @@
             <driver>Valtteri Bottas</driver>
             <year>2019</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/villeneuve.svg</svg_file>
     </circuit>
 
     <circuit id="monaco">
@@ -125,7 +125,7 @@
             <driver>Lewis Hamilton</driver>
             <year>2021</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/monaco.svg</svg_file>
     </circuit>
 
     <circuit id="catalunya">
@@ -141,7 +141,7 @@
             <driver>Max Verstappen</driver>
             <year>2021</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/catalunya.svg</svg_file>
     </circuit>
 
     <circuit id="red_bull_ring">
@@ -157,7 +157,7 @@
             <driver>Carlos Sainz</driver>
             <year>2020</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/red_bull_ring.svg</svg_file>
     </circuit>
 
     <circuit id="silverstone">
@@ -173,7 +173,7 @@
             <driver>Max Verstappen</driver>
             <year>2020</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/silverstone.svg</svg_file>
     </circuit>
 
     <circuit id="spa">
@@ -189,7 +189,7 @@
             <driver>Valtteri Bottas</driver>
             <year>2018</year>
         </lap_record>
-        <svg_path>/tracks/spa_francorchamps.svg</svg_path>
+        <svg_file>/tracks/spa_francorchamps.svg</svg_file>
     </circuit>
 
     <circuit id="hungaroring">
@@ -205,7 +205,7 @@
             <driver>Lewis Hamilton</driver>
             <year>2020</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/hungaroring.svg</svg_file>
     </circuit>
 
     <circuit id="zandvoort">
@@ -221,7 +221,7 @@
             <driver>Lewis Hamilton</driver>
             <year>2021</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/zandvoort.svg</svg_file>
     </circuit>
 
     <circuit id="monza">
@@ -237,7 +237,7 @@
             <driver>Rubens Barrichello</driver>
             <year>2004</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/monza.svg</svg_file>
     </circuit>
 
     <circuit id="madrid">
@@ -253,7 +253,7 @@
             <driver>TBD</driver>
             <year>2026</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/madring.svg</svg_file>
     </circuit>
 
     <circuit id="baku">
@@ -269,7 +269,7 @@
             <driver>Charles Leclerc</driver>
             <year>2019</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/baku_street_circuit.svg</svg_file>
     </circuit>
 
     <circuit id="marina_bay">
@@ -285,7 +285,7 @@
             <driver>Kevin Magnussen</driver>
             <year>2018</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/singapore.svg</svg_file>
     </circuit>
 
     <circuit id="americas">
@@ -301,7 +301,7 @@
             <driver>Charles Leclerc</driver>
             <year>2019</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/circuit_of_the_americas.svg</svg_file>
     </circuit>
 
     <circuit id="rodriguez">
@@ -317,7 +317,7 @@
             <driver>Valtteri Bottas</driver>
             <year>2021</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/hermanos_rodríguez.svg</svg_file>
     </circuit>
 
     <circuit id="interlagos">
@@ -333,7 +333,7 @@
             <driver>Valtteri Bottas</driver>
             <year>2018</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/interlagos.svg</svg_file>
     </circuit>
 
     <circuit id="vegas">
@@ -349,7 +349,7 @@
             <driver>Oscar Piastri</driver>
             <year>2023</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/vegas.svg</svg_file>
     </circuit>
 
     <circuit id="losail">
@@ -365,7 +365,7 @@
             <driver>Max Verstappen</driver>
             <year>2023</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/losail.svg</svg_file>
     </circuit>
 
     <circuit id="yas_marina">
@@ -381,6 +381,6 @@
             <driver>Max Verstappen</driver>
             <year>2021</year>
         </lap_record>
-        <svg_path></svg_path>
+        <svg_file>/tracks/yas_marina.svg</svg_file>
     </circuit>
 </circuits>

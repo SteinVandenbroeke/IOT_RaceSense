@@ -57,12 +57,11 @@
     let markerCount = $derived(Math.floor((max - min) / stepSize));
 </script>
 
-<article class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col justify-center shadow-lg w-full h-full min-h-25">    
-    <div class="flex flex-col sm:flex-row sm:items-center gap-6 mt-auto">
+<article class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-center shadow-lg w-full h-full">    
+    <div class="flex flex-col sm:flex-row sm:items-center gap-4 w-full">
         
         <div class="flex flex-col flex-1 w-full gap-1">
-            
-            <div class="flex items-center gap-[2px] h-8 w-full">
+            <div class="flex items-center gap-[2px] h-6 w-full">
                 {#each Array(segments) as _, i}
                     {@const segmentVal = min + (i / segments) * (max - min)}
                     {@const isActive = clampedValue > segmentVal}
@@ -78,7 +77,7 @@
                     {@const percent = ((val - min) / (max - min)) * 100}
                     
                     <span 
-                        class="absolute top-0 -translate-x-1/2 text-[10px] font-mono text-zinc-500 font-bold"
+                        class="absolute top-0 -translate-x-1/2 text-[9px] font-mono text-zinc-500 font-bold"
                         style="left: {percent}%;"
                     >
                         {val}
@@ -87,13 +86,19 @@
             </div>
         </div>
 
-        <div class="flex items-baseline gap-2 shrink-0">
-            <data value={clampedValue.toString()} class="text-4xl font-black text-white tracking-tighter tabular-nums leading-none">
+<div class="flex items-baseline justify-end gap-2 shrink-0 w-32">
+            
+            <data 
+                value={clampedValue.toString()} 
+                class="w-16 text-right text-3xl font-mono font-black text-white tracking-tighter leading-none"
+            >
                 {clampedValue.toFixed(0)} 
             </data>
-            <span class="text-zinc-500 font-mono text-4xl leading-tight">
+
+            <span class="text-zinc-500 font-mono text-xl leading-tight text-left">
                 {unit}
             </span>
+            
         </div>
         
     </div>
