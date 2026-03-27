@@ -5,6 +5,7 @@ from MPL3115A2 import MPL3115A2, ALTITUDE, PRESSURE
 import _thread
 import math
 from .Sensor import Sensor
+import time_tracker
 
 class PressureAndAltitude(Sensor):
     def __init__(self, pycoproc):
@@ -16,7 +17,7 @@ class PressureAndAltitude(Sensor):
         pressuere = self.pressure.pressure()
         altitude = self.altitude.altitude()
         data = {
-            "timestamp": time.localtime(),
+            "timestamp": time_tracker.check_uptime(),
             "pressuere": pressuere,
             "altitude": altitude
         }

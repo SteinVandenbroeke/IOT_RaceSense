@@ -5,6 +5,7 @@ from MPL3115A2 import MPL3115A2, ALTITUDE, PRESSURE
 import _thread
 import math
 from .Sensor import Sensor
+import time_tracker
 
 class TempAndHumidity(Sensor):
     def __init__(self, pycoproc):
@@ -15,7 +16,7 @@ class TempAndHumidity(Sensor):
         temp = self.tempAndHumidity.temperature()
         humidity = self.tempAndHumidity.humidity()
         data = {
-            "timestamp": time.localtime(),
+            "timestamp": time_tracker.check_uptime(),
             "temp": temp,
             "humidity": humidity
         }

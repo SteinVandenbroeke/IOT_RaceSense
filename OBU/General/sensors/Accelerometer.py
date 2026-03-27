@@ -5,6 +5,7 @@ from MPL3115A2 import MPL3115A2, ALTITUDE, PRESSURE
 import _thread
 import math
 from .Sensor import Sensor
+import time_tracker
 
 class Accelerometer(Sensor):
     def __init__(self, pycoproc):
@@ -20,7 +21,7 @@ class Accelerometer(Sensor):
         g_force = math.sqrt(x**2 + y**2 + z**2)
         
         data = {
-            "timestamp": time.localtime(),
+            "timestamp": time_tracker.check_uptime(),
             "acceleration": acceleration,
             "roll": roll,
             "pitch": pitch,
