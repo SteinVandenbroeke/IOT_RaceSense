@@ -8,6 +8,8 @@
         value, 
         unit 
     }: Props = $props();
+
+
 </script>
 
 <article class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col justify-center shadow-lg w-full h-full">

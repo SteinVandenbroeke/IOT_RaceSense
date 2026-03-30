@@ -5,6 +5,7 @@
 	import Tachometer from '../../components/gauges/tachometer.svelte';
 	import GMeter from '../../components/g-meter.svelte';
 	import TrackMap from '../../components/trackmap.svelte';
+  import { globalSocket } from '$lib/communcation/globalSocket.svelte';
 
 	let displayMode: 'analog' | 'digital' = $state('digital');
 </script>
@@ -93,7 +94,8 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             
             <div class="col-span-1">
-                <GMeter maxG={3} demo={true} />
+                <GMeter maxG={3} x={globalSocket.current_data.Accelerometer.acceleration[1] || 0}
+                                y={globalSocket.current_data.Accelerometer.acceleration[0] || 0} />
             </div>
             
             <div class="col-span-1 lg:col-span-2">

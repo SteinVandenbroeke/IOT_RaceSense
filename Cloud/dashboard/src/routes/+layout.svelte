@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount, onDestroy } from 'svelte';
+	import { globalSocket } from '$lib/communcation/globalSocket.svelte';
 	import './layout.css';
 	let { children } = $props();
 
@@ -13,7 +15,7 @@
 	];
 
 	// 1. Define the strict racing presets
-	type SessionMode = 
+	type SessionMode =
 		| { type: 'Practice'; timeRemaining: string }
 		| { type: 'Qualifying'; timeRemaining: string }
 		| { type: 'Race'; format: 'time'; timeRemaining: string }
@@ -36,9 +38,9 @@
 	let session: session = $state({
 		isActive: true,
 		location: 'Spa-Francorchamps',
-		mode: { type: 'Race', format: 'laps', currentLap: 12, totalLaps: 44 }, 
+		mode: { type: 'Race', format: 'laps', currentLap: 12, totalLaps: 44 },
 		trackTemp: 22.5,
-		flag: 'Green', 
+		flag: 'Green',
 		weather: 'Light Rain'
 	});
 
@@ -50,15 +52,23 @@
 	const flagColors: Record<FlagType, string> = {
 		'Green': 'bg-emerald-500 animate-pulse',
 		'Yellow': 'bg-yellow-400 animate-pulse',
-		'Double Yellow': 'bg-yellow-400 animate-pulse', 
+		'Double Yellow': 'bg-yellow-400 animate-pulse',
 		'Red': 'bg-red-500 animate-ping',
 		'SC': 'bg-yellow-400 text-black font-black flex items-center justify-center',
 		'VSC': 'bg-yellow-400 text-black font-black flex items-center justify-center'
 	};
+	onMount(() => {
+		globalSocket.connect();
+	});
+
+	onDestroy(() => {
+		// Cleans up the connection if the user navigates away from the app
+		globalSocket.disconnect();
+	});
 </script>
 
 <div class="flex h-screen bg-zinc-950 text-zinc-100 overflow-hidden">
-	
+
 	{#if isMenuOpen}
 		<button 
 			class="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm" 
@@ -108,15 +118,15 @@
 
 	<div class="flex-1 flex flex-col min-w-0">
 		<main class="flex-1 overflow-y-auto">
-			
+
 			{#if session.isActive}
-				<section 
-					role="alert" 
+				<section
+					role="alert"
 					aria-live="polite"
 					class="bg-zinc-900 border-b border-zinc-800 px-4 py-3 sm:px-6 grid grid-cols-1 lg:grid-cols-3 items-center gap-4 shadow-md"
 				>
 					<div class="flex items-center justify-start gap-4">
-						<div 
+						<div
 							class="w-8 h-6 rounded-sm shadow-sm border border-black/20 {flagColors[session.flag]}"
 							title="Current Track Status: {session.flag}"
 						>
@@ -128,8 +138,8 @@
 						</div>
 
 						<h2 class="text-sm font-bold text-white uppercase tracking-wide flex items-center gap-2">
-							{session.mode.type} 
-							<span class="text-zinc-600 font-normal">|</span> 
+							{session.mode.type}
+							<span class="text-zinc-600 font-normal">|</span>
 							<span class="text-zinc-300 font-mono">
 								{#if session.mode.type === 'Race' && session.mode.format === 'laps'}
 									LAP {session.mode.currentLap} / {session.mode.totalLaps}
@@ -155,18 +165,25 @@
 							<span class="text-lg" aria-hidden="true">{weatherIcons[session.weather]}</span>
 							<span class="text-zinc-300 hidden xl:inline">{session.weather}</span>
 						</div>
-						
+
 						<div class="flex items-center gap-2">
 							<span class="text-zinc-500 uppercase text-[10px]">Track</span>
 							<span class="text-zinc-200 tabular-nums">{session.trackTemp}°C</span>
 						</div>
 
-						<a 
-							href="/live" 
+						<a
+							href="/live"
 							class="hidden md:flex ml-2 bg-zinc-100 hover:bg-white text-zinc-950 px-4 py-1.5 rounded text-xs font-bold uppercase transition-colors"
 						>
 							View
 						</a>
+					</div>
+					<div class="status-badge">
+						{#if globalSocket.isConnected}
+							🟢 Online
+						{:else}
+							🔴 Offline
+						{/if}
 					</div>
 				</section>
 			{/if}
