@@ -1,11 +1,40 @@
 // WebSocketModel.svelte.ts
 
+import type { Snippet } from 'svelte';
+
+interface TempAndHumidity {
+	humidity: number;
+	timestamp: number;
+	temp: number;
+}
+
+interface Accelerometer {
+	timestamp: number;
+	roll: number;
+	pitch: number;
+	g_force: number;
+	acceleration: [number, number, number];
+}
+
+interface PressureAndAltitude {
+	altitude: number;
+	timestamp: number;
+	pressuere: number;
+}
+
+interface CarTelemetry {
+	TempAndHumidity: TempAndHumidity;
+	time: number;
+	Accelerometer: Accelerometer;
+	PressureAndAltitude: PressureAndAltitude;
+}
+
 export class WebSocketModel<T = any> {
 	private ws: WebSocket | null = null;
 	private url: string;
 
 	// Using Svelte 5 runes for reactive state
-	current_data = $state<object>({
+	current_data = $state<CarTelemetry>({
 		TempAndHumidity: { humidity: 32.78403, timestamp: 854600, temp: 30.0275 },
 		time: 854754,
 		Accelerometer: {
