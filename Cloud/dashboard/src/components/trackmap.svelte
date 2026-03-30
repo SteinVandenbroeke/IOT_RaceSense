@@ -147,38 +147,53 @@
                 if (circuits.length > 0 && !selectedId) selectedId = circuits[0].id;
             });
     });
+    let calculationPathString = $state('');
+    function cleanAndExtractTrack(svgText: string) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgText, "image/svg+xml");
+        const pathData = doc.querySelector('path')?.getAttribute('d') || '';
+
+        // 1. Split the compound path into individual sub-paths
+        // Your SVG has 3 parts: Outer Wall, Inner Wall, and Arrow.
+        const subPaths = pathData.split(/(?=m|M)/).filter(p => p.trim().length > 0);
+
+        // 2. Identify the two longest sub-paths (the walls)
+        const sortedPaths = subPaths.sort((a, b) => b.length - a.length);
+        const wallA = sortedPaths[0]; // Outer
+        const wallB = sortedPaths[1]; // Inner
+
+        // 3. To get a center-line, we can simply use ONE of these walls 
+        // and ignore the "return trip" and the arrow.
+        // This stops the "switching sides" and "reversing" behavior.
+        return {
+            visualOutline: wallA + wallB, // The full track look
+            drivingLine: wallA,          // The path the dot follows
+            viewBox: doc.querySelector('svg')?.getAttribute('viewBox') || '0 0 800 800'
+    };
+}
 
     // 1. Fetch SVG and find the LONGEST path (usually the track itself)
     $effect(() => {
         if (activeCircuit?.svgFile) {
-            activePathString = ''; 
             fetch(activeCircuit.svgFile)
                 .then(res => res.text())
                 .then(svgText => {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(svgText, "image/svg+xml");
                     const svgNode = doc.querySelector('svg');
+                    const pathNode = doc.querySelector('path'); 
                     
-                    const paths = Array.from(doc.querySelectorAll('path'));
-                    
-                    // NEW STRATEGY: Find the path that is likely the track.
-                    // We look for a path that ends with 'z' or 'Z' (closed loop) 
-                    // AND has a significant length.
-                    let trackPath = paths.find(p => {
-                        const d = p.getAttribute('d') || '';
-                        return (d.endsWith('z') || d.endsWith('Z')) && d.length > 100;
-                    });
-
-                    // Fallback to longest if no closed loop found
-                    if (!trackPath) {
-                        trackPath = paths.reduce((prev, current) => 
-                            (prev.getAttribute('d')?.length || 0) > (current.getAttribute('d')?.length || 0) ? prev : current
-                        );
-                    }
-                    
-                    if (svgNode && trackPath) {
+                    if (svgNode && pathNode) {
                         activeViewBox = svgNode.getAttribute('viewBox') || '0 0 800 800';
-                        activePathString = trackPath.getAttribute('d') || '';
+                        const fullD = pathNode.getAttribute('d') || '';
+                        
+                        // VISUAL: Keep the whole ribbon
+                        activePathString = fullD; 
+
+                        // MATH: Split the string at 'M' and take only the first loop (the outer wall)
+                        // This ignores the arrow and the "return" trip
+                        const subPaths = fullD.split(/(?=[mM])/);
+                        calculationPathString = subPaths[0] || fullD; 
                     }
                 });
         }
@@ -186,20 +201,34 @@
 
     // 2. Optimized Path Math to prevent "reversing"
     $effect(() => {
-        if (pathElement && activePathString) {
+        if (pathElement && calculationPathString) {
             try {
                 const totalLength = pathElement.getTotalLength();
+                const currentLength = totalLength * (displayProgress % 1);
                 
-                // Because the SVG is an outline loop, 0% to 50% is 
-                // usually one full trip around the circuit.
-                const lapLength = totalLength / 2; 
-                
-                // We map our 0-1 progress to only the first half of the SVG path
-                const currentLength = lapLength * (displayProgress % 1);
-                
+                // 1. Get the current point on the outer wall
                 const point = pathElement.getPointAtLength(currentLength);
-                dotX = point.x;
-                dotY = point.y;
+                
+                // 2. Look slightly ahead to figure out which way the track is going
+                const lookAheadLength = (currentLength + 1) % totalLength;
+                const nextPoint = pathElement.getPointAtLength(lookAheadLength);
+                
+                // 3. Calculate the tangent vector (direction)
+                const dx = nextPoint.x - point.x;
+                const dy = nextPoint.y - point.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // 4. Calculate the Normal vector (90 degrees to the tangent)
+                // Note: If the dot shifts OUTSIDE the track, flip these to (-dy/distance) and (dx/distance)
+                const nx = dy / distance;  
+                const ny = -dx / distance; 
+
+                // 5. Apply the offset (e.g., 6 SVG units inward)
+                const offsetAmount = 6; 
+                
+                dotX = point.x + (nx * offsetAmount);
+                dotY = point.y + (ny * offsetAmount);
+                
             } catch (e) {
                 dotX = 0; dotY = 0;
             }
@@ -284,32 +313,38 @@
                 </span>
             </div>
         </div>
+    <div class="relative w-full flex items-center justify-center flex-1 py-2 overflow-hidden">
+        {#if activePathString}
+            <svg viewBox={activeViewBox} class="w-full h-full max-h-[250px] overflow-visible drop-shadow-lg">
+                
+                <path
+                    d={activePathString}
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    class="text-zinc-500"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
 
-        <div class="relative w-full flex items-center justify-center flex-1 py-2 overflow-hidden">
-            {#if activePathString}
-                <svg viewBox={activeViewBox} class="w-full h-full max-h-[250px] overflow-visible drop-shadow-lg">
-                    <path
-                        bind:this={pathElement}
-                        d={activePathString}
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="3"
-                        class="text-zinc-500"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    />
-                    {#if pathElement && (dotX !== 0 || dotY !== 0)}
-                        <g transform="translate({dotX}, {dotY})" class="transition-transform duration-75 ease-linear">
-                            <circle cx="0" cy="0" r="6" class="fill-emerald-400/30 animate-ping" />
-                            <circle cx="0" cy="0" r="4.5" fill="rgba(0,0,0,0.6)" transform="translate(1, 1)" />
-                            <circle cx="0" cy="0" r="3.5" class="fill-emerald-400 stroke-zinc-900" stroke-width="1.5" />
-                        </g>
-                    {/if}
-                </svg>
-            {:else}
-                <div class="text-zinc-600 text-sm font-mono animate-pulse">Loading track map...</div>
-            {/if}
-        </div>
+                <path
+                    bind:this={pathElement}
+                    d={calculationPathString}
+                    fill="none"
+                    stroke="transparent" 
+                    pointer-events="none"
+                />
+
+                {#if pathElement && calculationPathString && (dotX !== 0 || dotY !== 0)}
+                    <g transform="translate({dotX}, {dotY})" class="transition-transform duration-75 ease-linear">
+                        <circle cx="0" cy="0" r="10" class="fill-emerald-400/40 animate-ping" />
+                        <circle cx="0" cy="0" r="6" fill="rgba(0,0,0,0.8)" />
+                        <circle cx="0" cy="0" r="4" class="fill-emerald-400" />
+                    </g>
+                {/if}
+            </svg>
+        {/if}
+    </div>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-auto border-t border-zinc-800/50 pt-3">
             <div>

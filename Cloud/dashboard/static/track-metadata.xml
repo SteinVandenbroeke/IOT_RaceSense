@@ -15,6 +15,7 @@
             <year>2024</year>
         </lap_record>
         <svg_file>/tracks/albert_park.svg</svg_file>
+        <svg_reverse>true</svg_reverse>
     </circuit>
 
     <circuit id="shanghai">
@@ -32,6 +33,7 @@
             <year>2004</year>
         </lap_record>
         <svg_file>/tracks/shanghai.svg</svg_file>
+        <svg_reverse>true</svg_reverse>
     </circuit>
 
     <circuit id="suzuka">
@@ -39,6 +41,7 @@
         <city>Suzuka</city>
         <country>Japan</country>
         <length_km>5.807</length_km>
+        <direction>figure-eight</direction>
         <corners>18</corners>
         <first_gp>1987</first_gp>
         <races_held>35</races_held>
@@ -65,6 +68,7 @@
             <year>2005</year>
         </lap_record>
         <svg_file>/tracks/bahrein.svg</svg_file>
+        <svg_reverse>true</svg_reverse>
     </circuit>
 
     <circuit id="jeddah">
@@ -72,6 +76,7 @@
         <city>Jeddah</city>
         <country>Saudi Arabia</country>
         <length_km>6.174</length_km>
+        <direction>counterclockwise</direction>
         <corners>27</corners>
         <first_gp>2021</first_gp>
         <races_held>4</races_held>
@@ -88,6 +93,7 @@
         <city>Miami</city>
         <country>USA</country>
         <length_km>5.410</length_km>
+        <direction>counterclockwise</direction>
         <corners>19</corners>
         <first_gp>2022</first_gp>
         <races_held>3</races_held>
@@ -104,6 +110,7 @@
         <city>Montreal</city>
         <country>Canada</country>
         <length_km>4.361</length_km>
+        <direction>clockwise</direction>
         <corners>14</corners>
         <first_gp>1978</first_gp>
         <races_held>42</races_held>
@@ -120,6 +127,7 @@
         <city>Monte-Carlo</city>
         <country>Monaco</country>
         <length_km>3.337</length_km>
+        <direction>clockwise</direction>
         <corners>19</corners>
         <first_gp>1929</first_gp>
         <races_held>79</races_held>
@@ -129,6 +137,7 @@
             <year>2021</year>
         </lap_record>
         <svg_file>/tracks/monaco.svg</svg_file>
+        <svg_reverse>true</svg_reverse>
     </circuit>
 
     <circuit id="catalunya">
@@ -136,6 +145,7 @@
         <city>Montmeló</city>
         <country>Spain</country>
         <length_km>4.675</length_km>
+        <direction>clockwise</direction>
         <corners>16</corners>
         <first_gp>1991</first_gp>
         <races_held>33</races_held>
@@ -145,6 +155,7 @@
             <year>2021</year>
         </lap_record>
         <svg_file>/tracks/catalunya.svg</svg_file>
+        <svg_reverse>true</svg_reverse>
     </circuit>
 
     <circuit id="red_bull_ring">
@@ -152,6 +163,7 @@
         <city>Spielberg</city>
         <country>Austria</country>
         <length_km>4.318</length_km>
+        <direction>clockwise</direction>
         <corners>10</corners>
         <first_gp>1970</first_gp>
         <races_held>36</races_held>
@@ -168,6 +180,7 @@
         <city>Silverstone</city>
         <country>Great Britain</country>
         <length_km>5.891</length_km>
+        <direction>clockwise</direction>
         <corners>18</corners>
         <first_gp>1950</first_gp>
         <races_held>57</races_held>
@@ -177,6 +190,7 @@
             <year>2020</year>
         </lap_record>
         <svg_file>/tracks/silverstone.svg</svg_file>
+        <svg_reverse>true</svg_reverse>
     </circuit>
 
     <circuit id="spa">
@@ -184,6 +198,7 @@
         <city>Spa</city>
         <country>Belgium</country>
         <length_km>7.004</length_km>
+        <direction>clockwise</direction>
         <corners>19</corners>
         <first_gp>1925</first_gp>
         <races_held>55</races_held>
@@ -193,6 +208,7 @@
             <year>2018</year>
         </lap_record>
         <svg_file>/tracks/spa_francorchamps.svg</svg_file>
+        <svg_reverse>true</svg_reverse>
     </circuit>
 
     <circuit id="hungaroring">
@@ -200,6 +216,7 @@
         <city>Budapest</city>
         <country>Hungary</country>
         <length_km>4.381</length_km>
+        <direction>clockwise</direction>
         <corners>14</corners>
         <first_gp>1986</first_gp>
         <races_held>38</races_held>
@@ -209,6 +226,7 @@
             <year>2020</year>
         </lap_record>
         <svg_file>/tracks/hungaroring.svg</svg_file>
+        <svg_reverse>true</svg_reverse>
     </circuit>
 
     <circuit id="zandvoort">
@@ -216,6 +234,7 @@
         <city>Zandvoort</city>
         <country>Netherlands</country>
         <length_km>4.259</length_km>
+        <direction>clockwise</direction>
         <corners>14</corners>
         <first_gp>1952</first_gp>
         <races_held>31</races_held>
@@ -225,6 +244,7 @@
             <year>2021</year>
         </lap_record>
         <svg_file>/tracks/zandvoort.svg</svg_file>
+        <svg_reverse>true</svg_reverse>
     </circuit>
 
     <circuit id="monza">
@@ -232,6 +252,7 @@
         <city>Monza</city>
         <country>Italy</country>
         <length_km>5.793</length_km>
+        <direction>clockwise</direction>
         <corners>11</corners>
         <first_gp>1922</first_gp>
         <races_held>72</races_held>
@@ -241,6 +262,7 @@
             <year>2004</year>
         </lap_record>
         <svg_file>/tracks/monza.svg</svg_file>
+        <svg_reverse>true</svg_reverse>
     </circuit>
 
     <circuit id="madrid">
@@ -248,6 +270,7 @@
         <city>Madrid</city>
         <country>Spain</country>
         <length_km>5.470</length_km>
+        <direction>clockwise</direction>
         <corners>22</corners>
         <first_gp>2026</first_gp>
         <races_held>1</races_held>
@@ -281,6 +304,7 @@
         <city>Singapore</city>
         <country>Singapore</country>
         <length_km>5.063</length_km>
+        <direction>counterclockwise</direction>
         <corners>23</corners>
         <first_gp>2008</first_gp>
         <races_held>15</races_held>
@@ -314,6 +338,7 @@
         <city>Mexico City</city>
         <country>Mexico</country>
         <length_km>4.304</length_km>
+        <direction>clockwise</direction>
         <corners>17</corners>
         <first_gp>1963</first_gp>
         <races_held>23</races_held>
@@ -323,13 +348,15 @@
             <year>2021</year>
         </lap_record>
         <svg_file>/tracks/hermanos_rodríguez.svg</svg_file>
+        <svg_reverse>true</svg_reverse>
     </circuit>
 
     <circuit id="interlagos">
-        <name>Autódromo José Carlos Pace</name>
+        <name>Interlagos</name>
         <city>São Paulo</city>
         <country>Brazil</country>
         <length_km>4.309</length_km>
+        <direction>counterclockwise</direction>
         <corners>15</corners>
         <first_gp>1973</first_gp>
         <races_held>48</races_held>
@@ -346,6 +373,7 @@
         <city>Las Vegas</city>
         <country>USA</country>
         <length_km>6.201</length_km>
+        <direction>counterclockwise</direction>
         <corners>17</corners>
         <first_gp>2023</first_gp>
         <races_held>2</races_held>
@@ -362,6 +390,7 @@
         <city>Al Daayen</city>
         <country>Qatar</country>
         <length_km>5.419</length_km>
+        <direction>clockwise</direction>
         <corners>16</corners>
         <first_gp>2021</first_gp>
         <races_held>3</races_held>
@@ -378,6 +407,7 @@
         <city>Abu Dhabi</city>
         <country>UAE</country>
         <length_km>5.281</length_km>
+        <direction>counterclockwise</direction>
         <corners>16</corners>
         <first_gp>2009</first_gp>
         <races_held>15</races_held>
