@@ -5,6 +5,7 @@
         <city>Melbourne</city>
         <country>Australia</country>
         <length_km>5.278</length_km>
+        <direction>clockwise</direction>
         <corners>14</corners>
         <first_gp>1996</first_gp>
         <races_held>28</races_held>
@@ -21,6 +22,7 @@
         <city>Shanghai</city>
         <country>China</country>
         <length_km>5.451</length_km>
+        <direction>clockwise</direction>        
         <corners>16</corners>
         <first_gp>2004</first_gp>
         <races_held>17</races_held>
@@ -53,6 +55,7 @@
         <city>Sakhir</city>
         <country>Bahrain</country>
         <length_km>5.412</length_km>
+        <direction>clockwise</direction>
         <corners>15</corners>
         <first_gp>2004</first_gp>
         <races_held>20</races_held>
@@ -260,6 +263,7 @@
         <name>Baku City Circuit</name>
         <city>Baku</city>
         <country>Azerbaijan</country>
+        <direction>counterclockwise</direction>
         <length_km>6.003</length_km>
         <corners>20</corners>
         <first_gp>2016</first_gp>
@@ -293,6 +297,7 @@
         <city>Austin</city>
         <country>USA</country>
         <length_km>5.513</length_km>
+        <direction>counterclockwise</direction>
         <corners>20</corners>
         <first_gp>2012</first_gp>
         <races_held>11</races_held>
