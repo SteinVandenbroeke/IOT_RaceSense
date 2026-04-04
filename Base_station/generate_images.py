@@ -1,12 +1,12 @@
 import carla
 import random
 import numpy as np
-import cv2
 import os
+import json
 
-# Create directories to store the output images
-os.makedirs('output/rgb', exist_ok=True)
-os.makedirs('output/mask', exist_ok=True)
+# Create directories to store the output images and keypoints
+os.makedirs('output_keypoints/rgb', exist_ok=True)
+os.makedirs('output_keypoints/keypoints', exist_ok=True)
 
 # ---------------------------------------------------------------------------
 # Setup: Scenes, Weather, and Vehicles
@@ -44,18 +44,58 @@ VEHICLE_MODELS = [
 ]
 
 
-def process_mask(image, target_vehicle_id, prefix):
-    image_data = np.frombuffer(image.raw_data, dtype=np.uint8)
-    image_data = np.reshape(image_data, (image.height, image.width, 4))
+# ---------------------------------------------------------------------------
+# Projection Math Helpers
+# ---------------------------------------------------------------------------
+def get_camera_intrinsic(w, h, fov):
+    focal = w / (2.0 * np.tan(fov * np.pi / 360.0))
+    K = np.identity(3)
+    K[0, 0] = K[1, 1] = focal
+    K[0, 2] = w / 2.0
+    K[1, 2] = h / 2.0
+    return K
 
-    b = image_data[:, :, 0].astype(np.uint32)
-    g = image_data[:, :, 1].astype(np.uint32)
-    instance_ids = g + (b << 8)
 
-    mask = np.zeros((image.height, image.width), dtype=np.uint8)
-    mask[instance_ids == target_vehicle_id] = 255
+def project_3d_to_2d(world_point, K, world_2_cam):
+    # 1. Convert to Homogeneous 3D point and apply World-to-Camera transform
+    point = np.array([world_point.x, world_point.y, world_point.z, 1.0])
+    point_camera = np.dot(world_2_cam, point)
 
-    cv2.imwrite(f'output/mask/{prefix}_mask_{image.frame}.png', mask)
+    # 2. Swap CARLA left-handed coordinates to standard camera right-handed
+    # CARLA: X forward, Y right, Z up
+    # Camera: X right, Y down, Z forward
+    x_c = point_camera[1]
+    y_c = -point_camera[2]
+    z_c = point_camera[0]
+
+    # 3. Ignore points behind the camera
+    if z_c <= 0.0:
+        return None
+
+    # 4. Project to 2D using Intrinsic Matrix
+    point_2d = np.dot(K, np.array([x_c, y_c, z_c]))
+    u = int(point_2d[0] / point_2d[2])
+    v = int(point_2d[1] / point_2d[2])
+
+    return [u, v]
+
+
+def save_keypoints(vehicle, rgb_camera, K, file_path):
+    # Get the bounding box vertices in world space
+    bbox = vehicle.bounding_box
+    vertices = bbox.get_world_vertices(vehicle.get_transform())
+
+    # Get camera extrinsic matrix
+    world_2_cam = np.linalg.inv(rgb_camera.get_transform().get_matrix())
+
+    keypoints = []
+    for vertex in vertices:
+        p2d = project_3d_to_2d(vertex, K, world_2_cam)
+        if p2d:
+            keypoints.append(p2d)
+
+    with open(file_path, 'w') as f:
+        json.dump(keypoints, f)
 
 
 def main():
@@ -78,18 +118,20 @@ def main():
         tm = client.get_trafficmanager(tm_port)
         tm.set_synchronous_mode(True)
 
-        # Spawn Cameras once, we will move them later
+        # Spawn RGB Camera
+        image_w = 800
+        image_h = 600
+        cam_fov = 90.0
+
         rgb_bp = blueprint_library.find('sensor.camera.rgb')
-        rgb_bp.set_attribute('image_size_x', '800')
-        rgb_bp.set_attribute('image_size_y', '600')
+        rgb_bp.set_attribute('image_size_x', str(image_w))
+        rgb_bp.set_attribute('image_size_y', str(image_h))
+        rgb_bp.set_attribute('fov', str(cam_fov))
         rgb_camera = world.spawn_actor(rgb_bp, carla.Transform())
         actor_list.append(rgb_camera)
 
-        inst_bp = blueprint_library.find('sensor.camera.instance_segmentation')
-        inst_bp.set_attribute('image_size_x', '800')
-        inst_bp.set_attribute('image_size_y', '600')
-        inst_camera = world.spawn_actor(inst_bp, carla.Transform())
-        actor_list.append(inst_camera)
+        # Calculate intrinsic matrix once
+        K = get_camera_intrinsic(image_w, image_h, cam_fov)
 
         # ------------------------------------------------------------------
         # MASTER LOOP: Scene -> Weather -> Vehicle
@@ -97,10 +139,8 @@ def main():
         for scene in SCENES:
             print(f"\n{'#' * 50}\nMoving to Scene: {scene['name']}\n{'#' * 50}")
 
-            # Move cameras to the new scene location
             new_cam_transform = carla.Transform(scene['loc'], scene['rot'])
             rgb_camera.set_transform(new_cam_transform)
-            inst_camera.set_transform(new_cam_transform)
 
             for weather_name, weather_params in WEATHERS.items():
                 print(f"\n--- Setting Weather: {weather_name} ---")
@@ -112,12 +152,10 @@ def main():
 
                     vehicle_bp = blueprint_library.find(model_name)
 
-                    # Randomize vehicle color!
                     if vehicle_bp.has_attribute('color'):
                         color = random.choice(vehicle_bp.get_attribute('color').recommended_values)
                         vehicle_bp.set_attribute('color', color)
 
-                    # Spawn logic
                     base_waypoint = world_map.get_waypoint(scene['loc'])
                     previous_waypoints = base_waypoint.previous(20.0)
                     spawn_waypoint = previous_waypoints[0] if previous_waypoints else base_waypoint
@@ -126,7 +164,6 @@ def main():
                     spawn_transform.location.z += 0.5
 
                     vehicle = world.spawn_actor(vehicle_bp, spawn_transform)
-                    target_id = vehicle.id
 
                     vehicle.set_autopilot(True, tm_port)
                     tm.ignore_lights_percentage(vehicle, 100)
@@ -140,18 +177,19 @@ def main():
 
                     # RUN 1 (Forward)
                     rgb_camera.listen(
-                        lambda image, p=file_prefix: image.save_to_disk(f'output/rgb/{p}_FWD_{image.frame}.png'))
-                    inst_camera.listen(lambda image, tid=target_id, p=file_prefix: process_mask(image, tid, f"{p}_FWD"))
+                        lambda image, p=file_prefix: image.save_to_disk(f'output_keypoints/rgb/{p}_FWD_{image.frame}.png'))
 
                     speed_m_s = TARGET_SPEED_KPH / 3.6
                     for _ in range(TARGET_FRAMES):
                         forward_vec = vehicle.get_transform().get_forward_vector()
                         vehicle.set_target_velocity(carla.Vector3D(forward_vec.x * speed_m_s, forward_vec.y * speed_m_s,
                                                                    forward_vec.z * speed_m_s))
-                        world.tick()
+
+                        frame_id = world.tick()
+                        json_path = f'output_keypoints/keypoints/{file_prefix}_FWD_{frame_id}.json'
+                        save_keypoints(vehicle, rgb_camera, K, json_path)
 
                     rgb_camera.stop()
-                    inst_camera.stop()
 
                     # Reposition to Opposite Lane
                     current_waypoint = world_map.get_waypoint(vehicle.get_location())
@@ -177,17 +215,18 @@ def main():
 
                     # RUN 2 (Backward)
                     rgb_camera.listen(
-                        lambda image, p=file_prefix: image.save_to_disk(f'output/rgb/{p}_BWD_{image.frame}.png'))
-                    inst_camera.listen(lambda image, tid=target_id, p=file_prefix: process_mask(image, tid, f"{p}_BWD"))
+                        lambda image, p=file_prefix: image.save_to_disk(f'output_keypoints/rgb/{p}_BWD_{image.frame}.png'))
 
                     for _ in range(TARGET_FRAMES):
                         forward_vec = vehicle.get_transform().get_forward_vector()
                         vehicle.set_target_velocity(carla.Vector3D(forward_vec.x * speed_m_s, forward_vec.y * speed_m_s,
                                                                    forward_vec.z * speed_m_s))
-                        world.tick()
+
+                        frame_id = world.tick()
+                        json_path = f'output_keypoints/keypoints/{file_prefix}_BWD_{frame_id}.json'
+                        save_keypoints(vehicle, rgb_camera, K, json_path)
 
                     rgb_camera.stop()
-                    inst_camera.stop()
                     vehicle.destroy()
 
     finally:
