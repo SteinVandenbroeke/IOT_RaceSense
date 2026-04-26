@@ -8,6 +8,7 @@ from CarData import CarData
 from CrashDetection import State_NoSpeed
 import time_tracker
 from internalCommunication import InternalCommunication
+from TSUConn import TSUConn
 # boot.py -- run on boot-up
 # 1. Initialize the Pytrack 2 board using the coprocessor library
 pycoproc = Pycoproc()
@@ -25,18 +26,20 @@ if board_id == 61458:
     cardata.addSensor(Accelerometer(pycoproc=pycoproc))
     cardata.addSensor(TempAndHumidity(pycoproc=pycoproc))
     cardata.addSensor(PressureAndAltitude(pycoproc=pycoproc))
-    cardata.crashDetection.add_crash_sequense(State_NoSpeed())
-    int_comm = InternalCommunication(False)
+    #cardata.crashDetection.add_crash_sequense(State_NoSpeed())
+
+    # int_comm = InternalCommunication(False)
     # Initialize Pysense-specific sensors here (e.g., SI7006A20, LTR329ALS01)
     
 elif board_id == 61459:
     print("Pytrack connected!")
     board_type = "PYTRACK"
     cardata.addSensor(Accelerometer(pycoproc=pycoproc))
-    cardata.addSensor(GPSSensor(pycoproc=pycoproc))
+    gpssens = GPSSensor(pycoproc=pycoproc)
+    cardata.addSensor(gpssens)
     cardata.crashDetection.add_crash_sequense(State_NoSpeed())
-    int_comm = InternalCommunication(True)
-    cardata.addSensor(VirtualPyCom(pycoproc=pycoproc, comm=int_comm))
+    #int_comm = InternalCommunication(True)
+    #cardata.addSensor(VirtualPyCom(pycoproc=pycoproc, comm=int_comm))
     # Initialize Pytrack-specific sensors here (e.g., L76GNSS)
     
 else:
