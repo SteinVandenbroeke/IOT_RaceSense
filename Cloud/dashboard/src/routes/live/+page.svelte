@@ -4,7 +4,7 @@
 	import Speedometer from '../../components/gauges/speedometer.svelte';
 	import Tachometer from '../../components/gauges/tachometer.svelte';
 	import GMeter from '../../components/g-meter.svelte';
-	import TrackMap from '../../components/trackmap.svelte';
+	import TrackWidget from '../../components/trackmap/trackWidget.svelte';
   import { globalSocket } from '$lib/communcation/globalSocket.svelte';
 
 	let displayMode: 'analog' | 'digital' = $state('digital');
@@ -99,7 +99,7 @@
             </div>
             
             <div class="col-span-1 lg:col-span-2">
-                <TrackMap demo={true} />
+                <TrackWidget demo={true} />
             </div>
             
         </div>
