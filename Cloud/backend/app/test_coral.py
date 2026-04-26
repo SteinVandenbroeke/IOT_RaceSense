@@ -3,7 +3,7 @@ import websockets
 import json
 
 # Notice the token in the URL! This matches your docker-compose environment variable.
-URI = "ws://localhost:8000/ws/coral?token=coral_secure_123"
+URI = "ws://localhost/ws/coral?token=coral_secure_123"
 
 async def simulate_coral():
     print(f"Connecting to {URI}...")
