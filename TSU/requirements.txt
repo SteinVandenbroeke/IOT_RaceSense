@@ -1,0 +1,5 @@
+websockets
+uvicorn[standard]<0.20.0
+fastapi
+websocket-client
+paho-mqtt
