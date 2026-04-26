@@ -1,0 +1,46 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: iot_user
+      POSTGRES_PASSWORD: supersecretpassword
+      POSTGRES_DB: iot_database
+    ports:
+      - "5433:5432" 
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    # Removed ports! Only Caddy talks to the backend now.
+    environment:
+      - DATABASE_URL=postgresql://iot_user:supersecretpassword@db:5432/iot_database
+      - CORAL_SECRET_TOKEN=coral_secure_123
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    # Removed ports! Only Caddy talks to the frontend now.
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
