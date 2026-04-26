@@ -1,70 +1,72 @@
-from typing import Dict, Any
+import paho.mqtt.client as mqtt
+import websocket
+import json
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+# --- Configuration ---
+# The Mosquitto broker is running on the same Coral board
+MQTT_BROKER = "127.0.0.1"
+MQTT_PORT = 1883
+MQTT_TOPIC = "sensors/pycom/#"  # The '#' wildcard listens to all sub-topics
 
-app = FastAPI()
+# Your Digital Ocean WebSocket endpoint
+WS_URL = "ws://your-digital-ocean-ip:port/ws"
 
-class ConnectionManager:
-    def __init__(self):
-        self.cars: list[WebSocket] = []
-        self.active_connections: list[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-
-    async def send_personal_message(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
-
-    async def broadcast_str(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
-
-    async def broadcast_json(self, message: dict):
-        for connection in self.active_connections:
-            await connection.send_json(message)
+# Initialize WebSocket connection
+ws = websocket.WebSocket()
 
 
-manager = ConnectionManager()
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
-
-@app.post("/postCar")
-async def receive_data(payload: Dict[str, Any]):
-    """
-    Receives a JSON payload (dictionary) from the Pycom board.
-    """
-    # print("--- New Data Received ---")
-    # print("Payload:", payload)
-    # print("-------------------------")
-    await manager.broadcast_json(payload)
-
-    # You can process your data here (save to database, trigger events, etc.)
-
-    # The dictionary you return here will automatically be converted to JSON
-    # and sent back to the Pycom board as the HTTP response.
-    return {"status": "success", "message": "Data received perfectly!"}
-
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    print(websocket)
-    await manager.connect(websocket)
+def connect_websocket():
     try:
-        while True:
-            data = await websocket.receive_json()
-            #await manager.send_personal_message(f"You wrote: {data}", websocket)
-            print(data)
-            await manager.broadcast(data)
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        await manager.broadcast(f"Client # left the chat")
+        ws.connect(WS_URL)
+        print("Connected to Digital Ocean WebSocket")
+    except Exception as e:
+        print(f"Failed to connect to WebSocket: {e}")
+
+
+# --- MQTT Callbacks ---
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("Connected to Local Mosquitto Broker!")
+        # Subscribe to the Pycom data topic
+        client.subscribe(MQTT_TOPIC)
+    else:
+        print(f"Failed to connect, return code {rc}")
+
+
+def on_message(client, userdata, msg):
+    # 1. Receive data from Pycom
+    raw_payload = msg.payload.decode('utf-8')
+    print(f"Received from {msg.topic}: {raw_payload}")
+
+    # 2. PROCESS DATA HERE (e.g., Edge TPU inference, math, formatting)
+    # Example: Let's assume we just wrap it in a JSON object for now
+    processed_data = {
+        "device_topic": msg.topic,
+        "processed_value": raw_payload,
+        "status": "verified_by_coral"
+    }
+
+    # 3. Send processed data to Digital Ocean via WebSocket
+    try:
+        ws.send(json.dumps(processed_data))
+        print("Forwarded processed data to cloud.")
+    except Exception as e:
+        print(f"WebSocket send failed: {e}. Attempting to reconnect...")
+        connect_websocket()
+
+
+# --- Main Execution ---
+if __name__ == "__main__":
+    connect_websocket()
+
+    # Set up the MQTT Client
+    mqtt_client = mqtt.Client()
+    mqtt_client.on_connect = on_connect
+    mqtt_client.on_message = on_message
+
+    # Connect to the local broker and start listening
+    mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+
+    print("Starting Coral Edge Processor...")
+    # This keeps the script running forever, listening for incoming Pycom messages
+    mqtt_client.loop_forever()
