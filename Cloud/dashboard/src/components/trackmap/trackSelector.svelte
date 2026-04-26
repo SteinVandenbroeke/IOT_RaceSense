@@ -107,17 +107,29 @@
             </span>
         </div>
         
-        <div class="flex items-center relative h-8 w-full max-w-[280px] sm:max-w-[320px]" use:clickOutside>
+        <div class="flex items-center relative h-8 w-full max-w-70 sm:max-w-[320px]" use:clickOutside>
             <h3 class="text-white text-xl font-bold tracking-tight leading-none whitespace-nowrap truncate transition-opacity duration-300 {isExpanded ? 'opacity-0' : 'opacity-100'}">
                 {activeCircuit.name}
             </h3>
 
             <div 
+                role="button"
+                tabindex="0"
                 class="absolute right-0 flex items-center rounded-full overflow-hidden transition-all duration-700 ease-out h-8 z-10 {isExpanded ? 'w-full bg-zinc-800 ring-1 ring-zinc-700 shadow-xl' : 'w-8 bg-zinc-800/50 hover:bg-zinc-700 cursor-pointer'}"
                 onclick={() => { if (!isExpanded) { isExpanded = true; setTimeout(() => inputElement?.focus(), 50); } }}
+                onkeydown={(e) => { 
+                    if (!isExpanded && (e.key === 'Enter' || e.key === ' ')) { 
+                        e.preventDefault(); 
+                        isExpanded = true; 
+                        setTimeout(() => inputElement?.focus(), 50); 
+                    } 
+                }}
             >
-                <button class="flex items-center justify-center w-8 h-8 shrink-0 text-zinc-400 focus:outline-none transition-colors {isExpanded ? 'cursor-default' : 'hover:text-emerald-400'}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button 
+                    aria-label="Expand search"
+                    class="flex items-center justify-center w-8 h-8 shrink-0 text-zinc-400 focus:outline-none transition-colors {isExpanded ? 'cursor-default' : 'hover:text-emerald-400'}"
+                >                    
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </button>
@@ -133,6 +145,7 @@
 
                 {#if isExpanded}
                     <button 
+                        aria-label="Clear search or close"
                         onclick={(e) => { 
                             e.stopPropagation();
                             if (searchQuery.length > 0) {
