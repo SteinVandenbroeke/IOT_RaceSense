@@ -6,6 +6,7 @@
 	import GMeter from '../../components/g-meter.svelte';
 	import TrackWidget from '../../components/trackmap/trackWidget.svelte';
   import { globalSocket } from '$lib/communcation/globalSocket.svelte';
+  import RollPitchCard from '../../components/rollPitch/RollPitchCard.svelte';
 
 	let displayMode: 'analog' | 'digital' = $state('digital');
 </script>
@@ -101,7 +102,9 @@
             <div class="col-span-1 lg:col-span-2">
                 <TrackWidget demo={true} />
             </div>
-            
+            <div class="col-span-1">
+                <RollPitchCard roll={globalSocket.current_data.Accelerometer.roll || 0} pitch={globalSocket.current_data.Accelerometer.pitch || 0}></RollPitchCard>
+            </div>
         </div>
     </div>
 

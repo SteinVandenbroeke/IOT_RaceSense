@@ -1,0 +1,4 @@
+Base_station/output_keypoints
+Base_station/output_mask
+Base_station/dataset/*
+Base_station/models
