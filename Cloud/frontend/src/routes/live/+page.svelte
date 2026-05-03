@@ -40,11 +40,11 @@
             <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Digital Cluster</h2>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div class="col-span-1">
-                    <Speedometer value={globalSocket.telemetry.wheel_speed} unit="km/h"/>
+                    <Speedometer value={globalSocket.telemetry.wheel_speed || 0} unit="km/h"/>
                 </div>
                 <div class="col-span-1 lg:col-span-2">
                     <Tachometer 
-                        value={globalSocket.telemetry.engine_rpm} 
+                        value={globalSocket.telemetry.engine_rpm || 0} 
                         max={7500} 
                         segments={25} 
 						stepSize={500}
@@ -95,7 +95,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             
             <div class="col-span-1">
-                <GMeter maxG={3} x={globalSocket.telemetry.g_force_x} y={globalSocket.telemetry.g_force_y} />
+                <GMeter maxG={3} x={globalSocket.telemetry.g_force_x || 0} y={globalSocket.telemetry.g_force_y || 0} />
             </div>
             
             <div class="col-span-1 lg:col-span-2">
