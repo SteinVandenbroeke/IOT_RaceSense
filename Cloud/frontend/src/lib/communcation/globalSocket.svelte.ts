@@ -57,11 +57,22 @@ class GlobalSocket {
 
 		this.socket.onmessage = (event) => {
 			try {
-				// Parse the outer payload first
+				// 1. Parse the incoming JSON
 				const rawMessage: IncomingPayload = JSON.parse(event.data);
-				console.log('🏎️ RAW MESSAGE:', rawMessage);
 
-				// Extract ONLY the 'processed_value' block to feed to the UI
+				// 2. Measure Latency (if the time property exists)
+				const timeVal = rawMessage.processed_value?.time;
+				if (typeof timeVal === 'string') {
+					const messageTime = new Date(timeVal).getTime(); // Time the sensor took the reading
+					const browserTime = Date.now(); // Exact time right now
+					const latencyMs = browserTime - messageTime;
+
+					console.log(`⏱️ Latency: ${latencyMs}ms | Data:`, rawMessage.processed_value);
+				} else {
+					console.log('RAW MESSAGE:', rawMessage);
+				}
+
+				// 3. Feed the UI
 				if (rawMessage.processed_value) {
 					this.telemetry = {
 						...this.telemetry,
