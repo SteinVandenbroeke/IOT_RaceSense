@@ -45,6 +45,7 @@ def on_message(client, userdata, msg):
     raw_payload = msg.payload.decode('utf-8')
     print(f"Received from {msg.topic}: {raw_payload}")
     data = json.loads(raw_payload)
+    print(msg.topic)
 
     if "sensors/OBU" in msg.topic:
         processed_data = {
