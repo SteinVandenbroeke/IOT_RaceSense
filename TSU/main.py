@@ -23,6 +23,22 @@ def connect_websocket():
         print(f"Failed to connect to WebSocket: {e}")
 
 
+def listen_to_websocket():
+    while True:
+        try:
+            # This waits (blocks) until a message arrives from Digital Ocean
+            message = ws.recv()
+            if message:
+                cloud_data = json.loads(message)
+                #print(f"Cloud sent: {cloud_data}")
+
+                # Example: If cloud sends a command, forward it to MQTT
+                # send_mqtt_message("commands/from_cloud", cloud_data)
+
+        except Exception as e:
+            print(f"WS Receiver Error: {e}. Reconnecting...")
+            connect_websocket()
+
 # --- MQTT Callbacks ---
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
@@ -35,7 +51,7 @@ def on_connect(client, userdata, flags, rc):
 def send_to_cloud(data: dict):
     try:
         ws.send(json.dumps(data))
-        print("Forwarded processed data to cloud.")
+        #print("Forwarded processed data to cloud.")
     except Exception as e:
         print(f"WebSocket send failed: {e}. Attempting to reconnect...")
         connect_websocket()
@@ -43,7 +59,7 @@ def send_to_cloud(data: dict):
 def on_message(client, userdata, msg):
     # 1. Receive data from Pycom
     raw_payload = msg.payload.decode('utf-8')
-    print(f"Received from {msg.topic}: {raw_payload}")
+    #print(f"Received from {msg.topic}: {raw_payload}")
     try:
         data = json.loads(raw_payload)
     except:
@@ -68,14 +84,15 @@ def send_mqtt_message(topic: str, data: str):
 if __name__ == "__main__":
     connect_websocket()
 
-    # Set up the MQTT Client
     mqtt_client = mqtt.Client()
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
-
-    # Connect to the local broker and start listening
     mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
 
-    print("Starting Coral Edge Processor...")
-    # This keeps the script running forever, listening for incoming Pycom messages
-    mqtt_client.loop_forever()
+    # 1. Start MQTT in a background thread
+    mqtt_client.loop_start()
+    print("MQTT listening in background...")
+
+    # 2. Use the main thread to listen for Cloud messages
+    print("Starting Cloud listener...")
+    listen_to_websocket()
