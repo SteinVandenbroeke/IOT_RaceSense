@@ -93,24 +93,21 @@ async def websocket_ui_endpoint(websocket: WebSocket):
         manager.disconnect_ui(websocket)
 
 
+# REMOVED: token: str = Query(...)
 @app.websocket("/ws/coral")
-async def websocket_coral_endpoint(websocket: WebSocket, token: str = Query(...)):
+async def websocket_coral_endpoint(websocket: WebSocket):
     """Endpoint for the Coral Dev Board to push data."""
-    # Basic Authentication check
-    # if token != CORAL_TOKEN:
-    #     await websocket.close(code=1008) # Policy Violation
-    #     return
-
+    
     await websocket.accept()
     pool = app.state.db_pool
 
     try:
         while True:
-            # Receive data from Coral (assuming JSON)
+            # Receive data from Coral
             data_text = await websocket.receive_text()
             payload = json.loads(data_text)
             
-            # 1. Save to PostgreSQL using raw SQL
+            # 1. Save to PostgreSQL
             async with pool.acquire() as connection:
                 await connection.execute(
                     "INSERT INTO sensor_data (sensor_type, value) VALUES ($1, $2)",
