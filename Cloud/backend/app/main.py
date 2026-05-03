@@ -3,6 +3,7 @@ import json
 import asyncpg
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 # --- Database Setup ---
 DB_URL = os.getenv("DATABASE_URL")
