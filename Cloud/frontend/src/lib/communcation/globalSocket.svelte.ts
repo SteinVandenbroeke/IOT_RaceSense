@@ -59,17 +59,39 @@ class GlobalSocket {
 			try {
 				// 1. Parse the incoming JSON
 				const rawMessage: IncomingPayload = JSON.parse(event.data);
+				const pv = rawMessage.processed_value;
 
-				// 2. Measure Latency (if the time property exists)
-				const timeVal = rawMessage.processed_value?.time;
-				if (typeof timeVal === 'string') {
-					const messageTime = new Date(timeVal).getTime(); // Time the sensor took the reading
-					const browserTime = Date.now(); // Exact time right now
-					const latencyMs = browserTime - messageTime;
+				// 2. Measure Latency Per Sensor
+				if (pv) {
+					const browserTime = Date.now();
+					const latencies: Record<string, string | number> = {};
 
-					console.log(`⏱️ Latency: ${latencyMs}ms | Data:`, rawMessage.processed_value);
-				} else {
-					console.log('RAW MESSAGE:', rawMessage);
+					// Helper function to safely calculate latency
+					const calcLatency = (sensorTime?: any) => {
+						if (typeof sensorTime === 'string') {
+							return browserTime - new Date(sensorTime).getTime() + 'ms';
+						}
+						return 'N/A';
+					};
+
+					// Check each sensor's individual timestamp
+					if (pv.Accelerometer?.timestamp) {
+						latencies['Accel'] = calcLatency(pv.Accelerometer.timestamp);
+					}
+					if (pv.PressureAndAltitude?.timestamp) {
+						latencies['Pressure'] = calcLatency(pv.PressureAndAltitude.timestamp);
+					}
+					if (pv.TempAndHumidity?.timestamp) {
+						latencies['Temp/Humid'] = calcLatency(pv.TempAndHumidity.timestamp);
+					}
+
+					// Also check the global packet time
+					if (pv.time) {
+						latencies['Global Packet'] = calcLatency(pv.time);
+					}
+
+					// Print the clean report to the console
+					console.log(`⏱️ Latencies:`, latencies);
 				}
 
 				// 3. Feed the UI
