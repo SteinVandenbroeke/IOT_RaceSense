@@ -1,6 +1,6 @@
 # convert model:
 ```yolo export model=Base_station/models/train/weights/best.pt format=edgetpu imgsz=800 data=Base_station/dataset/dataset.yaml```
-
+```yolo export model=Base_station/finetuned_models/train/weights/best.pt format=edgetpu int8=True data=Base_station/manual_dataset/dataset.yaml```
 # Creating own dataset
 
 ### CARLA
