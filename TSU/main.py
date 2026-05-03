@@ -9,7 +9,7 @@ MQTT_PORT = 1883
 MQTT_TOPIC = "sensors/pycom/#"  # The '#' wildcard listens to all sub-topics
 
 # Your Digital Ocean WebSocket endpoint
-WS_URL = "wss://racesense.dcsteen.com:8000/ws/coral"
+WS_URL = "wss://racesense.dcsteen.com/ws/coral"
 
 # Initialize WebSocket connection
 ws = websocket.WebSocket()
