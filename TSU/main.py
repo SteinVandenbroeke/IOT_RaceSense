@@ -46,13 +46,13 @@ def on_message(client, userdata, msg):
     print(f"Received from {msg.topic}: {raw_payload}")
     data = json.loads(raw_payload)
 
-    if "sensors/pycom" in msg.topic:
+    if "sensors/OBU" in msg.topic:
         processed_data = {
             "device_topic": msg.topic,
             "processed_value": data
         }
         send_to_cloud(processed_data)
-    elif "flag/pycom" in msg.topic:
+    elif "flag/OBU" in msg.topic:
         send_mqtt_message("flag/TSU", data["color"])
 
 def send_mqtt_message(topic: str, data: str):
