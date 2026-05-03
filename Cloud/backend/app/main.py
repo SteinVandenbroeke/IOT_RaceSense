@@ -38,6 +38,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost",
+        "https://racesense.dcsteen.com",
+        "wss://racesense.dcsteen.com"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # --- WebSocket Connection Manager ---
 class ConnectionManager:
     def __init__(self):
