@@ -1,5 +1,5 @@
 # Caddyfile
-:80 {
+racesense.dcsteen.com {
     # Route all websocket and API traffic to the Python backend
     handle /ws/* {
         reverse_proxy backend:8000

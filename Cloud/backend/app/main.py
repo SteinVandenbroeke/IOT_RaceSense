@@ -1,15 +1,18 @@
 import os
 import json
 import asyncpg
+import asyncio  # Added missing asyncio import for your retry loop!
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 # --- Database Setup ---
 DB_URL = os.getenv("DATABASE_URL")
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Create a database connection pool with a retry mechanism
     print("Attempting to connect to PostgreSQL...")
     for _ in range(5):
         try:
@@ -21,22 +24,30 @@ async def lifespan(app: FastAPI):
             await asyncio.sleep(2)
     else:
         raise Exception("Failed to connect to the database after 5 attempts.")
-    
-    # Initialize your table if it doesn't exist
+
     async with app.state.db_pool.acquire() as connection:
         await connection.execute("""
-            CREATE TABLE IF NOT EXISTS sensor_data (
-                id SERIAL PRIMARY KEY,
-                sensor_type VARCHAR(50),
-                value FLOAT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            CREATE TABLE IF NOT EXISTS telemetry_raw
+            (
+                id          SERIAL PRIMARY KEY,
+                payload     JSONB,
+                received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
     yield
-    # Shutdown: Close the pool
     await app.state.db_pool.close()
 
+
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Since you are in hardware testing, open CORS up entirely for now
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # --- WebSocket Connection Manager ---
 class ConnectionManager:
@@ -54,58 +65,84 @@ class ConnectionManager:
         for connection in self.active_ui_connections:
             await connection.send_text(message)
 
+
 manager = ConnectionManager()
 
-# --- Security Dependency ---
-CORAL_TOKEN = os.getenv("CORAL_SECRET_TOKEN")
 
-def verify_coral_token(token: str = Query(...)):
-    if token != CORAL_TOKEN:
-        raise HTTPException(status_code=403, detail="Invalid authentication token")
-    return token
+# --- Helper: Convert Pycom RTC to Standard ISO Time ---
+def pycom_rtc_to_iso(rtc_array):
+    """Converts a Pycom RTC array like [2026, 5, 3, 18, 47, 48, 383241, null] into an ISO string."""
+    if isinstance(rtc_array, list) and len(rtc_array) >= 7:
+        try:
+            dt = datetime(
+                year=rtc_array[0],
+                month=rtc_array[1],
+                day=rtc_array[2],
+                hour=rtc_array[3],
+                minute=rtc_array[4],
+                second=rtc_array[5],
+                microsecond=rtc_array[6],
+                tzinfo=timezone.utc
+            )
+            return dt.isoformat()
+        except Exception:
+            pass
+    return rtc_array
+
 
 # --- Endpoints ---
 
 @app.websocket("/ws/ui")
 async def websocket_ui_endpoint(websocket: WebSocket):
-    """Endpoint for the Dashboard UI to listen to live data."""
     await manager.connect_ui(websocket)
     try:
         while True:
-            # Keep connection open and wait for UI to send heartbeat/commands
             data = await websocket.receive_text()
-            # You can handle UI commands here
     except WebSocketDisconnect:
         manager.disconnect_ui(websocket)
 
 
 @app.websocket("/ws/coral")
-async def websocket_coral_endpoint(websocket: WebSocket, token: str = Query(...)):
+async def websocket_coral_endpoint(websocket: WebSocket):
     """Endpoint for the Coral Dev Board to push data."""
-    # Basic Authentication check
-    if token != CORAL_TOKEN:
-        await websocket.close(code=1008) # Policy Violation
-        return
-
     await websocket.accept()
     pool = app.state.db_pool
 
     try:
         while True:
-            # Receive data from Coral (assuming JSON)
             data_text = await websocket.receive_text()
             payload = json.loads(data_text)
-            
-            # 1. Save to PostgreSQL using raw SQL
+
+            # --- 1. DATA CLEANUP ---
+            # Intercept the payload and fix the Pycom array timestamps
+            if "processed_value" in payload:
+                pv = payload["processed_value"]
+
+                # Fix global time
+                if "time" in pv:
+                    pv["time"] = pycom_rtc_to_iso(pv["time"])
+
+                # Fix all sensor sub-timestamps
+                for sensor in ["TempAndHumidity", "Accelerometer", "PressureAndAltitude"]:
+                    if sensor in pv and "timestamp" in pv[sensor]:
+                        pv[sensor]["timestamp"] = pycom_rtc_to_iso(pv[sensor]["timestamp"])
+
+            # Re-serialize the cleaned dictionary back into a JSON string
+            clean_data_text = json.dumps(payload)
+
+            # --- 2. DATABASE ---
+            # Save the CLEANED payload directly into PostgreSQL as JSONB
             async with pool.acquire() as connection:
                 await connection.execute(
-                    "INSERT INTO sensor_data (sensor_type, value) VALUES ($1, $2)",
-                    payload.get("sensor_type", "unknown"),
-                    payload.get("value", 0.0)
+                    "INSERT INTO telemetry_raw (payload) VALUES ($1::jsonb)",
+                    clean_data_text
                 )
 
-            # 2. Forward data to any listening UI clients
-            await manager.broadcast_to_ui(data_text)
+            # --- 3. BROADCAST ---
+            # Forward the standard, clean JSON to the UI
+            await manager.broadcast_to_ui(clean_data_text)
 
     except WebSocketDisconnect:
         print("Coral Dev Board disconnected.")
+    except Exception as e:
+        print(f"Error processing message: {e}")

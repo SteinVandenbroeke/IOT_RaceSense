@@ -4,22 +4,50 @@
 
     interface Props {
         statsPosition?: 'left' | 'right' | 'top' | 'bottom';
-        layerCount?: number; 
+        layerCount?: number;
+        surfaceTemp?: number;
+        pressure?: number;
+        speed?: number;
+        demo?: boolean;
     }
-    let { statsPosition = 'left', layerCount = 3 }: Props = $props();
+    let {
+        statsPosition = 'left',
+        layerCount = 3,
+        surfaceTemp = 0,
+        pressure = 0,
+        speed = 0,
+        demo = false
+    }: Props = $props();
 
-    let baseTemp: number = $state<number>(0.0);
-    let time = 0;
+    let demoTime = $state(0);
+    let demoBaseTemp = $state(0);
 
-    let speed = $derived(Math.max(0, Math.sin(time / 1.5) * 150 + 100));
-    let pressure = $derived(22 + (baseTemp / 20)); 
+    $effect(() => {
+        if (!demo) return; // Only run the loop if demo is true!
+
+        const interval = setInterval(() => {
+            demoTime += 0.02;
+            demoBaseTemp = 100 + Math.sin(demoTime) * 100;
+        }, 50);
+
+        return () => clearInterval(interval);
+    });
+
+    // --- THE SWITCHER LOGIC ---
+    // These derived values automatically pick the right data source
+    let activeSpeed = $derived(demo ? Math.max(0, Math.sin(demoTime / 1.5) * 150 + 100) : speed);
+    let activeSurfaceTemp = $derived(demo ? demoBaseTemp : surfaceTemp);
+    let activePressure = $derived(demo ? 22 + (demoBaseTemp / 20) : pressure);
+
+    // Derive internal temp based on whichever pressure is currently active
+    let internalTemp = $derived(activePressure * 1.6);
 
     let validLayerCount = $derived(Math.max(1, Math.min(3, layerCount)));
 
     let temperatures = $derived.by(() => {
-        let temps = [baseTemp];
-        if (validLayerCount > 1) temps.push(baseTemp - 15);
-        if (validLayerCount > 2) temps.push(baseTemp - 30);
+        let temps = [activeSurfaceTemp];
+        if (validLayerCount > 1) temps.push(internalTemp);
+        if (validLayerCount > 2) temps.push(internalTemp - 5);
         return temps;
     });
 
@@ -39,15 +67,6 @@
 
         return `hsl(${hue}, 85%, 50%)`;
     }
-
-    $effect(() => {
-        const interval = setInterval(() => {
-            time += 0.02;
-            baseTemp = 100 + Math.sin(time) * 100; 
-        }, 50);
-
-        return () => clearInterval(interval);
-    });
 </script>
 
 <div class="m-2 flex items-center justify-center gap-4
