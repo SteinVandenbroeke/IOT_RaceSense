@@ -72,7 +72,7 @@
                 />
                 
                 <Gauge 
-                    value={globalSocket.telemetry?.PressureAndAltitude?.pressure} max={8} stepSize={2} intermediateTicks={3} precision={1} unit="bar" demo={true}
+                    value={globalSocket.telemetry?.PressureAndAltitude?.pressure || 0} max={8} stepSize={2} intermediateTicks={3} precision={1} unit="bar" demo={true}
                     ranges={[
                         { min: 0, max: 2.9, colorClass: 'text-red-500' },
                         { min: 3, max: 8, colorClass: 'text-emerald-400' }
@@ -80,7 +80,7 @@
                 />
                 
                 <Gauge 
-                    value={globalSocket.telemetry?.TempAndHumidity?.temp} max={120} stepSize={20} intermediateTicks={1} unit="°C" demo={true}
+                    value={globalSocket.telemetry?.TempAndHumidity?.temp || 0} max={120} stepSize={20} intermediateTicks={1} unit="°C" demo={true}
                     ranges={[
                         { min: 0, max: 100, colorClass: 'text-emerald-400' },
                         { min: 101, max: 120, colorClass: 'text-red-500' }
@@ -110,7 +110,12 @@
     <div>
         <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Tyre Status</h2>
         <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-lg">
-            <TireSet layerCount={3} />
+            <TireSet
+                layerCount={2}
+                surfaceTemp={globalSocket.telemetry?.TempAndHumidity?.temp || { FL: 0, FR: 0, RL: 0, RR: 0 }}
+                pressure={globalSocket.telemetry?.PressureAndAltitude?.pressure || { FL: 0, FR: 0, RL: 0, RR: 0 }}
+                speed={globalSocket.telemetry?.Speed || { FL: 0, FR: 0, RL: 0, RR: 0 }}
+            />
         </div>
     </div>
 
