@@ -25,14 +25,15 @@ async def lifespan(app: FastAPI):
     
     # Initialize your table if it doesn't exist
     async with app.state.db_pool.acquire() as connection:
+        # Create a new table optimized for raw JSON
         await connection.execute("""
-            CREATE TABLE IF NOT EXISTS sensor_data (
-                id SERIAL PRIMARY KEY,
-                sensor_type VARCHAR(50),
-                value FLOAT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+                                 CREATE TABLE IF NOT EXISTS telemetry_raw
+                                 (
+                                     id          SERIAL PRIMARY KEY,
+                                     payload     JSONB,
+                                     received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                                 )
+                                 """)
     yield
     # Shutdown: Close the pool
     await app.state.db_pool.close()
@@ -102,20 +103,35 @@ async def websocket_coral_endpoint(websocket: WebSocket):
     pool = app.state.db_pool
 
     try:
+        while True:try:
         while True:
-            # Receive data from Coral
             data_text = await websocket.receive_text()
             payload = json.loads(data_text)
-            
-            # 1. Save to PostgreSQL
+
+            async with app.state.db_pool.acquire() as connection:
+                # Create a new table optimized for raw JSON
+                await connection.execute("""
+                 CREATE TABLE IF NOT EXISTS telemetry_raw
+                 (
+                     id          SERIAL PRIMARY KEY,
+                     payload     JSONB,
+                     received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                 )
+                """)
+
+            # 2. Forward exactly as received to the UI
+            await manager.broadcast_to_ui(data_text)
+            data_text = await websocket.receive_text()
+            payload = json.loads(data_text)
+
+            # 1. Save the ENTIRE payload directly into PostgreSQL as JSONB
             async with pool.acquire() as connection:
                 await connection.execute(
-                    "INSERT INTO sensor_data (sensor_type, value) VALUES ($1, $2)",
-                    payload.get("sensor_type", "unknown"),
-                    payload.get("value", 0.0)
+                    "INSERT INTO telemetry_raw (payload) VALUES ($1::jsonb)",
+                    data_text  # Pass the raw JSON string to be stored as JSONB
                 )
 
-            # 2. Forward data to any listening UI clients
+            # 2. Forward exactly as received to the UI
             await manager.broadcast_to_ui(data_text)
 
     except WebSocketDisconnect:
