@@ -44,7 +44,10 @@ def on_message(client, userdata, msg):
     # 1. Receive data from Pycom
     raw_payload = msg.payload.decode('utf-8')
     print(f"Received from {msg.topic}: {raw_payload}")
-    data = json.loads(raw_payload)
+    try:
+        data = json.loads(raw_payload)
+    except:
+        data = raw_payload
     print(msg.topic)
 
     if "sensors/OBU" in msg.topic:
