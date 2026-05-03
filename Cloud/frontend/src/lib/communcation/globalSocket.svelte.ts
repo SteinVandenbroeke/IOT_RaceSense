@@ -1,20 +1,37 @@
-// src/lib/state/socket.svelte.ts
+export type CornerData = {
+	FL: number;
+	FR: number;
+	RL: number;
+	RR: number;
+};
 
 export interface CarTelemetry {
-	VirtualTime?: { rtc_time: any[]; timestamp: number };
+	time?: any[];
 	Accelerometer?: {
-		timestamp: number;
+		timestamp: any[];
 		roll: number;
 		pitch: number;
 		g_force: number;
-		acceleration: number[]; // [x, y, z]
+		acceleration: number[];
 	};
-	PressureAndAltitude?: { altitude: number; timestamp: number; pressure: number };
-	TempAndHumidity?: { humidity: number; timestamp: number; temp: number };
-	time?: number;
-	// We add these back as optional in case you still want to mock them later
-	Speed?: number;
+	PressureAndAltitude?: {
+		altitude: number;
+		timestamp: any[];
+		pressure: number;
+	};
+	TempAndHumidity?: {
+		humidity: number;
+		timestamp: any[];
+		temp: number;
+	};
+	Speed?: CornerData | number;
 	RPM?: number;
+}
+
+// 2. Define the new outer wrapper that the Coral is sending
+interface IncomingPayload {
+	device_topic?: string;
+	processed_value?: CarTelemetry;
 }
 
 class GlobalSocket {
@@ -40,13 +57,17 @@ class GlobalSocket {
 
 		this.socket.onmessage = (event) => {
 			try {
-				const payload: CarTelemetry = JSON.parse(event.data);
-				console.log('LIVE DATA:', payload);
+				// Parse the outer payload first
+				const rawMessage: IncomingPayload = JSON.parse(event.data);
+				console.log('🏎️ RAW MESSAGE:', rawMessage);
 
-				this.telemetry = {
-					...this.telemetry,
-					...payload
-				};
+				// Extract ONLY the 'processed_value' block to feed to the UI
+				if (rawMessage.processed_value) {
+					this.telemetry = {
+						...this.telemetry,
+						...rawMessage.processed_value
+					};
+				}
 			} catch (error) {
 				console.error('Failed to parse sensor data:', error);
 			}

@@ -72,7 +72,7 @@
                 />
                 
                 <Gauge 
-                    value={globalSocket.telemetry?.PressureAndAltitude?.pressure || 0} max={8} stepSize={2} intermediateTicks={3} precision={1} unit="bar" demo={true}
+                    value={globalSocket.telemetry?.PressureAndAltitude?.pressure || 0} max={8} stepSize={2} intermediateTicks={3} precision={1} unit="bar" demo={false}
                     ranges={[
                         { min: 0, max: 2.9, colorClass: 'text-red-500' },
                         { min: 3, max: 8, colorClass: 'text-emerald-400' }
@@ -80,7 +80,7 @@
                 />
                 
                 <Gauge 
-                    value={globalSocket.telemetry?.TempAndHumidity?.temp || 0} max={120} stepSize={20} intermediateTicks={1} unit="°C" demo={true}
+                    value={globalSocket.telemetry?.TempAndHumidity?.temp || 0} max={120} stepSize={20} intermediateTicks={1} unit="°C" demo={false}
                     ranges={[
                         { min: 0, max: 100, colorClass: 'text-emerald-400' },
                         { min: 101, max: 120, colorClass: 'text-red-500' }
@@ -95,7 +95,11 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             
             <div class="col-span-1">
-                <GMeter maxG={3} x={globalSocket.telemetry?.Accelerometer?.acceleration[0] || 0} y={globalSocket.telemetry?.Accelerometer?.acceleration[2] || 0} />
+                <GMeter
+                    maxG={3}
+                    x={globalSocket.telemetry?.Accelerometer?.acceleration?.[0] || 0}
+                    y={globalSocket.telemetry?.Accelerometer?.acceleration?.[2] || 0}
+                />
             </div>
             
             <div class="col-span-1 lg:col-span-2">
