@@ -1,4 +1,6 @@
 Base_station/output_keypoints
 Base_station/output_mask
-Base_station/dataset/*
+Base_station/carla_dataset
+Base_station/manual_dataset
 Base_station/models
+Base_station/finetuned_models

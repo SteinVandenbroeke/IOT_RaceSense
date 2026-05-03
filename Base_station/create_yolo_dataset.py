@@ -13,7 +13,7 @@ DATASET_DIR = 'Dataset'
 
 IMAGE_WIDTH = 800.0
 IMAGE_HEIGHT = 600.0
-CLASS_ID = 0  # 0 represents 'car' in our dataset
+CLASS_ID = 0  # 0 represents 'car' in our carla_dataset
 SPLIT_RATIO = 0.8  # 80% for training, 20% for validation
 
 
@@ -114,7 +114,7 @@ def create_yolo_dataset():
     train_count = process_split(train_pairs, 'train')
     val_count = process_split(val_pairs, 'val')
 
-    # 5. Automatically generate the dataset.yaml file
+    # 5. Automatically generate the carla_dataset.yaml file
     yaml_content = f"""path: {os.path.abspath(DATASET_DIR)}
 train: images/train
 val: images/val
@@ -126,17 +126,17 @@ names:
 # Keypoints setup
 kpt_shape: [8, 3] # [number of keypoints, number of dimensions (x, y, visibility)]
 """
-    yaml_path = os.path.join(DATASET_DIR, 'dataset.yaml')
+    yaml_path = os.path.join(DATASET_DIR, 'carla_dataset.yaml')
     with open(yaml_path, 'w') as f:
         f.write(yaml_content)
 
-    print(f"Success! Built dataset with {train_count} train samples and {val_count} val samples.")
+    print(f"Success! Built carla_dataset with {train_count} train samples and {val_count} val samples.")
     print(f"Your configuration file is ready at: {yaml_path}")
     print("\nYou can now start training using:")
-    print("model.train(data='dataset/dataset.yaml', epochs=100, imgsz=800)")
+    print("model.train(data='carla_dataset/carla_dataset.yaml', epochs=100, imgsz=800)")
 
 
-def fix_yolo_labels(dataset_dir='dataset/'):
+def fix_yolo_labels(dataset_dir='carla_dataset/'):
     # Find all .txt files in both train and val label folders
     label_files = glob.glob(os.path.join(dataset_dir, 'labels', '**', '*.txt'), recursive=True)
     fixed_count = 0
