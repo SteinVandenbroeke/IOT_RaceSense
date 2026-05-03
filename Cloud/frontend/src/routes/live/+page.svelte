@@ -40,11 +40,11 @@
             <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Digital Cluster</h2>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div class="col-span-1">
-                    <Speedometer value={globalSocket.telemetry?.wheel_speed || 0} unit="km/h"/>
+                    <Speedometer value={274} unit="km/h"/>
                 </div>
                 <div class="col-span-1 lg:col-span-2">
                     <Tachometer 
-                        value={globalSocket.telemetry?.engine_rpm || 0} 
+                        value={6950}
                         max={7500} 
                         segments={25} 
 						stepSize={500}
@@ -72,7 +72,7 @@
                 />
                 
                 <Gauge 
-                    value={4.2} max={8} stepSize={2} intermediateTicks={3} precision={1} unit="bar" demo={true}
+                    value={globalSocket.telemetry?.PressureAndAltitude?.pressure} max={8} stepSize={2} intermediateTicks={3} precision={1} unit="bar" demo={true}
                     ranges={[
                         { min: 0, max: 2.9, colorClass: 'text-red-500' },
                         { min: 3, max: 8, colorClass: 'text-emerald-400' }
@@ -80,7 +80,7 @@
                 />
                 
                 <Gauge 
-                    value={90} max={120} stepSize={20} intermediateTicks={1} unit="°C" demo={true}
+                    value={globalSocket.telemetry?.TempAndHumidity?.temp} max={120} stepSize={20} intermediateTicks={1} unit="°C" demo={true}
                     ranges={[
                         { min: 0, max: 100, colorClass: 'text-emerald-400' },
                         { min: 101, max: 120, colorClass: 'text-red-500' }
@@ -95,14 +95,14 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             
             <div class="col-span-1">
-                <GMeter maxG={3} x={globalSocket.telemetry?.g_force_x || 0} y={globalSocket.telemetry?.g_force_y || 0} />
+                <GMeter maxG={3} x={globalSocket.telemetry?.Accelerometer?.acceleration[0] || 0} y={globalSocket.telemetry?.Accelerometer?.acceleration[2] || 0} />
             </div>
             
             <div class="col-span-1 lg:col-span-2">
                 <TrackWidget demo={true} />
             </div>
             <div class="col-span-1">
-                <RollPitchCard roll={globalSocket.telemetry?.roll || 0} pitch={globalSocket.telemetry?.pitch || 0}></RollPitchCard>
+                <RollPitchCard roll={globalSocket.telemetry?.Accelerometer?.roll || 0} pitch={globalSocket.telemetry?.Accelerometer?.pitch || 0}></RollPitchCard>
             </div>
         </div>
     </div>
