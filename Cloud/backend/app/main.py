@@ -103,24 +103,7 @@ async def websocket_coral_endpoint(websocket: WebSocket):
     pool = app.state.db_pool
 
     try:
-        while True:try:
         while True:
-            data_text = await websocket.receive_text()
-            payload = json.loads(data_text)
-
-            async with app.state.db_pool.acquire() as connection:
-                # Create a new table optimized for raw JSON
-                await connection.execute("""
-                 CREATE TABLE IF NOT EXISTS telemetry_raw
-                 (
-                     id          SERIAL PRIMARY KEY,
-                     payload     JSONB,
-                     received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                 )
-                """)
-
-            # 2. Forward exactly as received to the UI
-            await manager.broadcast_to_ui(data_text)
             data_text = await websocket.receive_text()
             payload = json.loads(data_text)
 
