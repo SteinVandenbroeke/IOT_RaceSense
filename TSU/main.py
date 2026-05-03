@@ -6,7 +6,7 @@ import json
 # The Mosquitto broker is running on the same Coral board
 MQTT_BROKER = "127.0.0.1"
 MQTT_PORT = 1883
-MQTT_TOPIC = "sensors/pycom/#"  # The '#' wildcard listens to all sub-topics
+MQTT_TOPIC = "#"  # The '#' wildcard listens to all sub-topics
 
 # Your Digital Ocean WebSocket endpoint
 WS_URL = "wss://racesense.dcsteen.com/ws/coral"
