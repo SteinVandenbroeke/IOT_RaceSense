@@ -32,27 +32,32 @@ def on_connect(client, userdata, flags, rc):
     else:
         print(f"Failed to connect, return code {rc}")
 
+def send_to_cloud(data: dict):
+    try:
+        ws.send(json.dumps(data))
+        print("Forwarded processed data to cloud.")
+    except Exception as e:
+        print(f"WebSocket send failed: {e}. Attempting to reconnect...")
+        connect_websocket()
 
 def on_message(client, userdata, msg):
     # 1. Receive data from Pycom
     raw_payload = msg.payload.decode('utf-8')
     print(f"Received from {msg.topic}: {raw_payload}")
+    data = json.loads(raw_payload)
 
-    # 2. PROCESS DATA HERE (e.g., Edge TPU inference, math, formatting)
-    # Example: Let's assume we just wrap it in a JSON object for now
-    processed_data = {
-        "device_topic": msg.topic,
-        "processed_value": raw_payload,
-        "status": "verified_by_coral"
-    }
+    if "sensors/pycom" in msg.topic:
+        processed_data = {
+            "device_topic": msg.topic,
+            "processed_value": data
+        }
+        send_to_cloud(processed_data)
+    elif "flag/pycom" in msg.topic:
+        send_mqtt_message("flag/TSU", data["color"])
 
-    # 3. Send processed data to Digital Ocean via WebSocket
-    try:
-        ws.send(json.dumps(processed_data))
-        print("Forwarded processed data to cloud.")
-    except Exception as e:
-        print(f"WebSocket send failed: {e}. Attempting to reconnect...")
-        connect_websocket()
+def send_mqtt_message(topic: str, data: str):
+    mqtt_client.publish(topic, data)
+    print(f"Sent command to Pycom on {topic}")
 
 
 # --- Main Execution ---
