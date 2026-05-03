@@ -83,9 +83,9 @@ async def websocket_ui_endpoint(websocket: WebSocket):
 async def websocket_coral_endpoint(websocket: WebSocket, token: str = Query(...)):
     """Endpoint for the Coral Dev Board to push data."""
     # Basic Authentication check
-    if token != CORAL_TOKEN:
-        await websocket.close(code=1008) # Policy Violation
-        return
+    # if token != CORAL_TOKEN:
+    #     await websocket.close(code=1008) # Policy Violation
+    #     return
 
     await websocket.accept()
     pool = app.state.db_pool
