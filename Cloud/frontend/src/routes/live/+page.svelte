@@ -98,7 +98,7 @@
                 <GMeter
                     maxG={3}
                     x={globalSocket.telemetry?.Accelerometer?.acceleration?.[0] || 0}
-                    y={globalSocket.telemetry?.Accelerometer?.acceleration?.[2] || 0}
+                    y={globalSocket.telemetry?.Accelerometer?.acceleration?.[1] || 0}
                 />
             </div>
             
