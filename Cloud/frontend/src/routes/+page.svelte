@@ -7,47 +7,7 @@
 		{ id: 'SESS-086', date: 'Sep 28, 2024', track: 'Zolder', type: 'Practice', laps: 22, bestLap: '1:31.005', topSpeed: '241 km/h', status: 'Completed' }
 	];
 	
-    import { globalSocket } from '$lib/communcation/globalSocket.svelte';
-    
-    // Optional: Extract specific values for easier rendering based on sensor_type
-    let speed = $derived(
-        globalSocket.latestData?.sensor_type === 'wheel_speed' 
-            ? globalSocket.latestData.value 
-            : 0 // Or keep previous value with more complex logic
-    );
 </script>
-
-<section class="p-6 max-w-7xl mx-auto space-y-8">
-    <header>
-        <h1 class="text-3xl font-black text-white">Live Telemetry</h1>
-        <p class="text-zinc-400">Real-time data from the Trackside Unit</p>
-    </header>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-lg">
-            <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Raw WebSocket Stream</h2>
-            
-            {#if globalSocket.isConnected}
-                {#if globalSocket.latestData}
-                    <div class="font-mono text-sm space-y-2">
-                        <div class="flex justify-between">
-                            <span class="text-zinc-400">Type:</span>
-                            <span class="text-emerald-400 font-bold">{globalSocket.latestData.sensor_type}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-zinc-400">Value:</span>
-                            <span class="text-white">{globalSocket.latestData.value}</span>
-                        </div>
-                    </div>
-                {:else}
-                    <p class="text-zinc-500 italic text-sm">Waiting for Coral Dev Board data...</p>
-                {/if}
-            {:else}
-                <p class="text-red-400 animate-pulse text-sm">Offline - Waiting for connection</p>
-            {/if}
-        </div>
-    </div>
-</section>
 
 <section aria-labelledby="overview-heading" class="max-w-7xl mx-auto space-y-8">
 	<header>

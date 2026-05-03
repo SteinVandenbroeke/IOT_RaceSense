@@ -5,8 +5,8 @@
 	import Tachometer from '../../components/gauges/tachometer.svelte';
 	import GMeter from '../../components/g-meter.svelte';
 	import TrackWidget from '../../components/trackmap/trackWidget.svelte';
-  import { globalSocket } from '$lib/communcation/globalSocket.svelte';
-  import RollPitchCard from '../../components/rollPitch/RollPitchCard.svelte';
+    import { globalSocket } from '$lib/communcation/globalSocket.svelte';
+    import RollPitchCard from '../../components/rollPitch/RollPitchCard.svelte';
 
 	let displayMode: 'analog' | 'digital' = $state('digital');
 </script>
@@ -40,15 +40,15 @@
             <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Digital Cluster</h2>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div class="col-span-1">
-                    <Speedometer value={184} unit="km/h" />
+                    <Speedometer value={globalSocket.telemetry.wheel_speed} unit="km/h"/>
                 </div>
                 <div class="col-span-1 lg:col-span-2">
                     <Tachometer 
-                        value={6400} 
+                        value={globalSocket.telemetry.engine_rpm} 
                         max={7500} 
                         segments={25} 
 						stepSize={500}
-                        demo={true}
+                        demo={false}
                         ranges={[
                             { min: 0, max: 5999, colorClass: 'bg-white' },
                             { min: 6000, max: 6999, colorClass: 'bg-orange-500' },
@@ -95,15 +95,14 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             
             <div class="col-span-1">
-                <GMeter maxG={3} x={globalSocket.current_data.Accelerometer.acceleration[1] || 0}
-                                y={globalSocket.current_data.Accelerometer.acceleration[0] || 0} />
+                <GMeter maxG={3} x={globalSocket.telemetry.g_force_x} y={globalSocket.telemetry.g_force_y} />
             </div>
             
             <div class="col-span-1 lg:col-span-2">
                 <TrackWidget demo={true} />
             </div>
             <div class="col-span-1">
-                <RollPitchCard roll={globalSocket.current_data.Accelerometer.roll || 0} pitch={globalSocket.current_data.Accelerometer.pitch || 0}></RollPitchCard>
+                <RollPitchCard roll={globalSocket.telemetry.roll || 0} pitch={globalSocket.telemetry.pitch || 0}></RollPitchCard>
             </div>
         </div>
     </div>
