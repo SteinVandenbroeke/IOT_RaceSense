@@ -11,52 +11,56 @@ export interface SensorPayload {
 }
 
 class GlobalSocket {
-    // Svelte 5 reactive state
     isConnected = $state(false);
-    latestData = $state<SensorPayload | null>(null);
+    
+    // NEW: A dictionary holding the latest value for every sensor type
+    telemetry = $state<Record<string, number>>({
+        wheel_speed: 0,
+        engine_rpm: 0,
+        track_temp: 0,
+        g_force_x: 0,
+        g_force_y: 0,
+        g_force_z: 0,
+        roll: 0,
+        pitch: 0,
+    });
     
     private socket: WebSocket | null = null;
     private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    private readonly WS_URL = 'ws://localhost/ws/ui';
     
+    // Remember to use your actual domain here if you aren't using a relative path!
+    // Since we are using Caddy, a relative path is safest so it works locally and on the server.
+    private readonly WS_URL = typeof window !== 'undefined' 
+        ? `wss://${window.location.host}/ws/ui` 
+        : '';
+
     connect() {
-        // Prevent SSR execution
         if (typeof window === 'undefined') return; 
-        
-        // Don't open multiple connections
         if (this.socket?.readyState === WebSocket.OPEN) return;
 
-        console.log(`Attempting connection to ${this.WS_URL}...`);
         this.socket = new WebSocket(this.WS_URL);
 
         this.socket.onopen = () => {
-            console.log('✅ Connected to IoT Backend');
             this.isConnected = true;
             if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         };
 
         this.socket.onmessage = (event) => {
             try {
-                // Parse the incoming string from FastAPI
                 const payload: SensorPayload = JSON.parse(event.data);
                 
-                // Update our reactive state. Any Svelte component looking 
-                // at `globalSocket.latestData` will instantly re-render!
-                this.latestData = payload;
+                // Dynamically update the specific sensor key
+                if (payload.sensor_type) {
+                    this.telemetry[payload.sensor_type] = payload.value;
+                }
             } catch (error) {
                 console.error("Failed to parse sensor data:", error);
             }
         };
 
         this.socket.onclose = () => {
-            console.log('❌ Disconnected from backend.');
             this.isConnected = false;
             this.scheduleReconnect();
-        };
-
-        this.socket.onerror = (error) => {
-            console.error('WebSocket Error:', error);
-            this.socket?.close(); // Force close to trigger the onclose/reconnect logic
         };
     }
 
