@@ -58,12 +58,18 @@ def send_to_cloud(data: dict):
 
 def on_message(client, userdata, msg):
     # 1. Receive data from Pycom
-    print(msg.payload)
+    if "flag/OBU" in msg.topic:
+        print(msg.payload)
+
     raw_payload = msg.payload.decode('utf-8')
     #print(f"Received from {msg.topic}: {raw_payload}")
-    print(raw_payload)
+    if "flag/OBU" in msg.topic:
+        print(raw_payload)
     data = json.loads(raw_payload)
     print(msg.topic)
+
+    if "flag/OBU" in msg.topic:
+        print(data)
 
     if "sensors/OBU" in msg.topic:
         processed_data = {
