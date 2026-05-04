@@ -29,6 +29,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://iot_user:supersecretpassword@db:5432/iot_database
       - CORAL_SECRET_TOKEN=coral_secure_123
+      - PYTHONUNBUFFERED=1
     depends_on:
       - db
 
