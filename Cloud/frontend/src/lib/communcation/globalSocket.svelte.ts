@@ -6,7 +6,8 @@ export type CornerData = {
 };
 
 export interface CarTelemetry {
-	time?: any[];
+	CarId?: number;
+	Time?: any[];
 	Accelerometer?: {
 		timestamp: any[];
 		roll: number;
@@ -36,7 +37,18 @@ interface IncomingPayload {
 
 class GlobalSocket {
 	isConnected = $state(false);
-	telemetry = $state<CarTelemetry>({});
+
+	// 1. The Garage: Store telemetry for ALL active cars by their CarId
+	cars = $state<Record<number, CarTelemetry>>({});
+
+	// 2. The Selector: Which car is the dashboard currently looking at?
+	selectedCarId = $state<number>(0);
+
+	// 3. The Magic Getter: The existing UI reads this, completely unaware
+	// that it's dynamically switching between different cars in the garage!
+	get telemetry(): CarTelemetry {
+		return this.cars[this.selectedCarId] || {};
+	}
 
 	private socket: WebSocket | null = null;
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -57,48 +69,17 @@ class GlobalSocket {
 
 		this.socket.onmessage = (event) => {
 			try {
-				// 1. Parse the incoming JSON
 				const rawMessage: IncomingPayload = JSON.parse(event.data);
 				const pv = rawMessage.processed_value;
 
-				// 2. Measure Latency Per Sensor
 				if (pv) {
-					const browserTime = Date.now();
-					const latencies: Record<string, string | number> = {};
+					// Extract the CarId (default to 0 if missing)
+					const incomingCarId = pv.CarId ?? 0;
 
-					// Helper function to safely calculate latency
-					const calcLatency = (sensorTime?: any) => {
-						if (typeof sensorTime === 'string') {
-							return browserTime - new Date(sensorTime).getTime() + 'ms';
-						}
-						return 'N/A';
-					};
-
-					// Check each sensor's individual timestamp
-					if (pv.Accelerometer?.timestamp) {
-						latencies['Accel'] = calcLatency(pv.Accelerometer.timestamp);
-					}
-					if (pv.PressureAndAltitude?.timestamp) {
-						latencies['Pressure'] = calcLatency(pv.PressureAndAltitude.timestamp);
-					}
-					if (pv.TempAndHumidity?.timestamp) {
-						latencies['Temp/Humid'] = calcLatency(pv.TempAndHumidity.timestamp);
-					}
-
-					// Also check the global packet time
-					if (pv.time) {
-						latencies['Global Packet'] = calcLatency(pv.time);
-					}
-
-					// Print the clean report to the console
-					console.log(`⏱️ Latencies:`, latencies);
-				}
-
-				// 3. Feed the UI
-				if (rawMessage.processed_value) {
-					this.telemetry = {
-						...this.telemetry,
-						...rawMessage.processed_value
+					// Update ONLY that specific car's data in the garage
+					this.cars[incomingCarId] = {
+						...this.cars[incomingCarId],
+						...pv
 					};
 				}
 			} catch (error) {
@@ -129,5 +110,6 @@ class GlobalSocket {
 		}, 3000);
 	}
 }
+
 
 export const globalSocket = new GlobalSocket();
