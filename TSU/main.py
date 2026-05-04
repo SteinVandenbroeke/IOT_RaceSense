@@ -74,7 +74,8 @@ def on_message(client, userdata, msg):
         send_to_cloud(processed_data)
     elif "flag/OBU" in msg.topic:
         print("flag change data", data)
-        send_mqtt_message("flag/TSU", data["color"])
+        input()
+        #send_mqtt_message("flag/TSU", data["color"])
 
 def send_mqtt_message(topic: str, data: str):
     mqtt_client.publish(topic, data)
