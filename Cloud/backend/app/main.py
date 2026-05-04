@@ -1,15 +1,13 @@
 import os
 import json
 import asyncpg
-import asyncio  # Added missing asyncio import for your retry loop!
+import asyncio
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-# --- Database Setup ---
 DB_URL = os.getenv("DATABASE_URL")
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,30 +24,38 @@ async def lifespan(app: FastAPI):
         raise Exception("Failed to connect to the database after 5 attempts.")
 
     async with app.state.db_pool.acquire() as connection:
+        #. Create the Sessions table
         await connection.execute("""
-            CREATE TABLE IF NOT EXISTS telemetry_raw
-            (
-                id          SERIAL PRIMARY KEY,
-                payload     JSONB,
+            CREATE TABLE IF NOT EXISTS sessions(
+                id SERIAL PRIMARY KEY,
+                status VARCHAR(20) DEFAULT 'Active',
+                start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        #. Create the Upgraded Telemetry table (now linked to sessions and cars)
+        await connection.execute("""
+            CREATE TABLE IF NOT EXISTS telemetry_raw (
+                id SERIAL PRIMARY KEY,
+                session_id INTEGER REFERENCES sessions(id),
+                car_id INTEGER,
+                payload JSONB,
                 received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
     yield
     await app.state.db_pool.close()
 
-
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Since you are in hardware testing, open CORS up entirely for now
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# --- WebSocket Connection Manager ---
 class ConnectionManager:
     def __init__(self):
         self.active_ui_connections: list[WebSocket] = []
@@ -65,32 +71,21 @@ class ConnectionManager:
         for connection in self.active_ui_connections:
             await connection.send_text(message)
 
-
 manager = ConnectionManager()
 
-
-# --- Helper: Convert Pycom RTC to Standard ISO Time ---
 def pycom_rtc_to_iso(rtc_array):
-    """Converts a Pycom RTC array like [2026, 5, 3, 18, 47, 48, 383241, null] into an ISO string."""
     if isinstance(rtc_array, list) and len(rtc_array) >= 7:
         try:
             dt = datetime(
-                year=rtc_array[0],
-                month=rtc_array[1],
-                day=rtc_array[2],
-                hour=rtc_array[3],
-                minute=rtc_array[4],
-                second=rtc_array[5],
-                microsecond=rtc_array[6],
-                tzinfo=timezone.utc
+                year=rtc_array[0], month=rtc_array[1], day=rtc_array[2],
+                hour=rtc_array[3], minute=rtc_array[4], second=rtc_array[5],
+                microsecond=rtc_array[6], tzinfo=timezone.utc
             )
             return dt.isoformat()
         except Exception:
             pass
     return rtc_array
 
-
-# --- Endpoints ---
 
 @app.websocket("/ws/ui")
 async def websocket_ui_endpoint(websocket: WebSocket):
@@ -101,10 +96,8 @@ async def websocket_ui_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect_ui(websocket)
 
-
 @app.websocket("/ws/coral")
 async def websocket_coral_endpoint(websocket: WebSocket):
-    """Endpoint for the Coral Dev Board to push data."""
     await websocket.accept()
     pool = app.state.db_pool
 
@@ -112,34 +105,55 @@ async def websocket_coral_endpoint(websocket: WebSocket):
         while True:
             data_text = await websocket.receive_text()
             payload = json.loads(data_text)
+            car_id = 0 # Default fallback
 
-            # --- 1. DATA CLEANUP ---
-            # Intercept the payload and fix the Pycom array timestamps
             if "processed_value" in payload:
                 pv = payload["processed_value"]
+                # Extract CarId from the payload
+                car_id = pv.get("CarId", 0)
 
-                # Fix global time
-                if "time" in pv:
-                    pv["time"] = pycom_rtc_to_iso(pv["time"])
-
-                # Fix all sensor sub-timestamps
+                # Fix timestamps
+                if "time" in pv: pv["time"] = pycom_rtc_to_iso(pv["time"])
                 for sensor in ["TempAndHumidity", "Accelerometer", "PressureAndAltitude"]:
                     if sensor in pv and "timestamp" in pv[sensor]:
                         pv[sensor]["timestamp"] = pycom_rtc_to_iso(pv[sensor]["timestamp"])
 
-            # Re-serialize the cleaned dictionary back into a JSON string
             clean_data_text = json.dumps(payload)
 
-            # --- 2. DATABASE ---
-            # Save the CLEANED payload directly into PostgreSQL as JSONB
+            # --- DATABASE TRANSACTIONS ---
             async with pool.acquire() as connection:
-                await connection.execute(
-                    "INSERT INTO telemetry_raw (payload) VALUES ($1::jsonb)",
-                    clean_data_text
-                )
+                #. Check for stale sessions (1 minute timeout)
+                await connection.execute("""
+                    UPDATE sessions 
+                    SET status = 'Completed' 
+                    WHERE status = 'Active' AND last_activity < NOW() - INTERVAL '1 minute'
+                """)
 
-            # --- 3. BROADCAST ---
-            # Forward the standard, clean JSON to the UI
+                #. Find the current Active session
+                session_row = await connection.fetchrow("""
+                    SELECT id FROM sessions WHERE status = 'Active' LIMIT 1
+                """)
+
+                if not session_row:
+                    # Create a brand new session!
+                    session_id = await connection.fetchval("""
+                        INSERT INTO sessions (status) VALUES ('Active') RETURNING id
+                    """)
+                    print(f"New Session Started: {session_id}")
+                else:
+                    session_id = session_row['id']
+                    # Keep the session alive
+                    await connection.execute("""
+                        UPDATE sessions SET last_activity = NOW() WHERE id = $1
+                    """, session_id)
+
+                #. Save the telemetry with foreign keys
+                await connection.execute("""
+                    INSERT INTO telemetry_raw (session_id, car_id, payload) 
+                    VALUES ($1, $2, $3::jsonb)
+                """, session_id, car_id, clean_data_text)
+
+            # --- BROADCAST ---
             await manager.broadcast_to_ui(clean_data_text)
 
     except WebSocketDisconnect:
