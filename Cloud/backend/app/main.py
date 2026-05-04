@@ -34,15 +34,37 @@ async def lifespan(app: FastAPI):
             )
         """)
         #. Create the Upgraded Telemetry table (now linked to sessions and cars)
-        await connection.execute("""
-            CREATE TABLE IF NOT EXISTS telemetry_raw (
-                id SERIAL PRIMARY KEY,
-                session_id INTEGER REFERENCES sessions(id),
-                car_id INTEGER,
-                payload JSONB,
-                received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+        # 2. Create the Fully Upgraded Telemetry table
+        await connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS telemetry_raw
+                (
+                    id SERIAL PRIMARY KEY,
+                    session_id    INTEGER REFERENCES sessions (id),
+                    car_id        INTEGER,
+                    -- Extracted Data Columns
+                    accel_roll    REAL,
+                    accel_pitch   REAL,
+                    accel_g_force REAL,
+                    accel_x       REAL,
+                    accel_y       REAL,
+                    accel_z       REAL,
+
+                    temp_surface  REAL,
+                    temp_humidity REAL,
+
+                    pressure      REAL,
+                    altitude      REAL,
+
+                    speed         REAL,
+                    rpm           INTEGER,
+
+                    -- Original JSON payload (optional, but good for archiving)
+                    payload       JSONB,
+                    received_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )                  
+        """
+    )
     yield
     await app.state.db_pool.close()
 
@@ -108,15 +130,15 @@ async def websocket_coral_endpoint(websocket: WebSocket):
             car_id = 0 # Default fallback
 
             if "processed_value" in payload:
-                pv = payload["processed_value"]
+                sensor_readings = payload["processed_value"]
                 # Extract CarId from the payload
-                car_id = pv.get("CarId", 0)
+                car_id = sensor_readings.get("CarId", 0)
 
                 # Fix timestamps
-                if "time" in pv: pv["time"] = pycom_rtc_to_iso(pv["time"])
+                if "time" in sensor_readings: sensor_readings["time"] = pycom_rtc_to_iso(sensor_readings["time"])
                 for sensor in ["TempAndHumidity", "Accelerometer", "PressureAndAltitude"]:
-                    if sensor in pv and "timestamp" in pv[sensor]:
-                        pv[sensor]["timestamp"] = pycom_rtc_to_iso(pv[sensor]["timestamp"])
+                    if sensor in sensor_readings and "timestamp" in sensor_readings[sensor]:
+                        sensor_readings[sensor]["timestamp"] = pycom_rtc_to_iso(sensor_readings[sensor]["timestamp"])
 
             clean_data_text = json.dumps(payload)
 
@@ -147,11 +169,47 @@ async def websocket_coral_endpoint(websocket: WebSocket):
                         UPDATE sessions SET last_activity = NOW() WHERE id = $1
                     """, session_id)
 
-                #. Save the telemetry with foreign keys
-                await connection.execute("""
-                    INSERT INTO telemetry_raw (session_id, car_id, payload) 
-                    VALUES ($1, $2, $3::jsonb)
-                """, session_id, car_id, clean_data_text)
+                accel = sensor_readings.get("Accelerometer", {})
+                temp_humid = sensor_readings.get("TempAndHumidity", {})
+                press_alt = sensor_readings.get("PressureAndAltitude", {})
+
+                accel_array = accel.get("acceleration", [None, None, None])
+
+                # 3. Save the telemetry with dedicated columns
+                await connection.execute(
+                    """
+                        INSERT INTO telemetry_raw (
+                            session_id, car_id,
+                            accel_roll, accel_pitch, accel_g_force,
+                            accel_x, accel_y, accel_z,
+                            temp_surface, temp_humidity,
+                            pressure, altitude,
+                            speed, rpm,
+                            payload
+                         )
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::jsonb)
+                    """,
+                    session_id,
+                    car_id,
+
+                    accel.get("roll"),
+                    accel.get("pitch"),
+                    accel.get("g_force"),
+                    accel_array[0] if len(accel_array) > 0 else None,
+                    accel_array[1] if len(accel_array) > 1 else None,
+                    accel_array[2] if len(accel_array) > 2 else None,
+
+                    temp_humid.get("temp"),
+                    temp_humid.get("humidity"),
+
+                    press_alt.get("pressure"),
+                    press_alt.get("altitude"),
+
+                    sensor_readings.get("Speed"),  # Assuming Speed is a top-level key when it arrives
+                    sensor_readings.get("RPM"),  # Assuming RPM is a top-level key when it arrives
+
+                    clean_data_text
+                )
 
             # --- BROADCAST ---
             await manager.broadcast_to_ui(clean_data_text)
