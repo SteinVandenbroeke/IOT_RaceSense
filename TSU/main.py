@@ -1,105 +1,110 @@
-import paho.mqtt.client as mqtt
-import websocket
+import asyncio
 import json
+import aiomqtt
+import websockets
 
 # --- Configuration ---
-# The Mosquitto broker is running on the same Coral board
 MQTT_BROKER = "127.0.0.1"
 MQTT_PORT = 1883
-MQTT_TOPIC = "#"  # The '#' wildcard listens to all sub-topics
+MQTT_TOPIC = "#"
 
-# Your Digital Ocean WebSocket endpoint
 WS_URL = "wss://racesense.dcsteen.com/ws/coral"
 
-# Initialize WebSocket connection
-ws = websocket.WebSocket()
 
-
-def connect_websocket():
+async def listen_to_ws(ws, mqtt_client):
+    """Listens for incoming messages from the Digital Ocean WebSocket."""
     try:
-        ws.connect(WS_URL)
-        print("Connected to Digital Ocean WebSocket")
+        async for message in ws:
+            cloud_data = json.loads(message)
+            # print(f"Cloud sent: {cloud_data}")
+
+            # Example: Forward cloud command to MQTT
+            # await mqtt_client.publish("commands/from_cloud", payload=json.dumps(cloud_data))
+
+    except websockets.exceptions.ConnectionClosed:
+        print("WebSocket connection closed from the server.")
     except Exception as e:
-        print(f"Failed to connect to WebSocket: {e}")
+        print(f"WS Receiver Error: {e}")
 
 
-def listen_to_websocket():
+async def listen_to_mqtt(ws, mqtt_client):
+    """Listens for incoming MQTT messages and forwards them to the WebSocket."""
+    try:
+        # aiomqtt uses an async generator for incoming messages
+        async with mqtt_client.messages() as messages:
+            async for msg in messages:
+                raw_payload = msg.payload.decode('utf-8')
+                topic = str(msg.topic)  # Convert aiomqtt Topic object to string
+
+                try:
+                    data = json.loads(raw_payload)
+                except json.JSONDecodeError:
+                    print(f"Failed to read JSON data on {topic}: {raw_payload}")
+                    continue
+
+                # print(f"Received on {topic}: {data}")
+
+                if "flag/OBU" in topic:
+                    print("flag change data:", data)
+                    # Use await to safely publish back to MQTT
+                    color = data.get("color", "")
+                    await mqtt_client.publish("flag/TSU", payload=color)
+                    print(f"Sent command to Pycom on flag/TSU")
+
+                elif "sensors/OBU" in topic:
+                    processed_data = {
+                        "device_topic": topic,
+                        "processed_value": data
+                    }
+                    # Use await to safely send to the WebSocket
+                    await ws.send(json.dumps(processed_data))
+
+    except websockets.exceptions.ConnectionClosed:
+        print("WebSocket disconnected while trying to send data.")
+    except Exception as e:
+        print(f"MQTT Listener Error: {e}")
+
+
+async def main():
+    """Main loop handling connections and automatic reconnections."""
     while True:
         try:
-            # This waits (blocks) until a message arrives from Digital Ocean
-            message = ws.recv()
-            if message:
-                cloud_data = json.loads(message)
-                #print(f"Cloud sent: {cloud_data}")
+            print(f"Connecting to WebSocket at {WS_URL}...")
+            async with websockets.connect(WS_URL) as ws:
+                print("Connected to Digital Ocean WebSocket!")
 
-                # Example: If cloud sends a command, forward it to MQTT
-                # send_mqtt_message("commands/from_cloud", cloud_data)
+                print(f"Connecting to MQTT Broker at {MQTT_BROKER}...")
+                async with aiomqtt.Client(MQTT_BROKER, port=MQTT_PORT) as mqtt_client:
+                    print("Connected to Local Mosquitto Broker!")
+                    await mqtt_client.subscribe(MQTT_TOPIC)
 
+                    # Create concurrent tasks for both listeners
+                    ws_task = asyncio.create_task(listen_to_ws(ws, mqtt_client))
+                    mqtt_task = asyncio.create_task(listen_to_mqtt(ws, mqtt_client))
+
+                    # Run both tasks until ONE of them finishes/fails (e.g., a connection drops)
+                    done, pending = await asyncio.wait(
+                        [ws_task, mqtt_task],
+                        return_when=asyncio.FIRST_COMPLETED
+                    )
+
+                    # If one connection drops, cancel the other task so we can cleanly restart both
+                    for task in pending:
+                        task.cancel()
+
+        except (websockets.exceptions.WebSocketException, aiomqtt.MqttError, OSError) as e:
+            print(f"Connection dropped/failed: {e}")
         except Exception as e:
-            print(f"WS Receiver Error: {e}. Reconnecting...")
-            connect_websocket()
+            print(f"Unexpected error: {e}")
 
-# --- MQTT Callbacks ---
-def on_connect(client, userdata, flags, rc):
-    if rc == 0:
-        print("Connected to Local Mosquitto Broker!")
-        # Subscribe to the Pycom data topic
-        client.subscribe(MQTT_TOPIC)
-    else:
-        print(f"Failed to connect, return code {rc}")
-
-def send_to_cloud(data: dict):
-    try:
-        ws.send(json.dumps(data))
-        #print("Forwarded processed data to cloud.")
-    except Exception as e:
-        print(f"WebSocket send failed: {e}. Attempting to reconnect...")
-        connect_websocket()
-
-def on_message(client, userdata, msg):
-    # 1. Receive data from Pycom
-
-    raw_payload = msg.payload.decode('utf-8')
-    #print(f"Received from {msg.topic}: {raw_payload}")
-    try:
-        data = json.loads(raw_payload)
-    except:
-        print("Failed to read data", raw_payload)
-        return
-
-    print(msg.topic)
-
-    if "flag/OBU" in msg.topic:
-        print(data)
-
-    if "sensors/OBU" in msg.topic:
-        processed_data = {
-            "device_topic": msg.topic,
-            "processed_value": data
-        }
-        send_to_cloud(processed_data)
-    elif "flag/OBU" in msg.topic:
-        print("flag change data", data)
-        send_mqtt_message("flag/TSU", data["color"])
-
-def send_mqtt_message(topic: str, data: str):
-    mqtt_client.publish(topic, data)
-    print(f"Sent command to Pycom on {topic}")
+        print("Reconnecting in 5 seconds...\n")
+        await asyncio.sleep(5)
 
 
 # --- Main Execution ---
 if __name__ == "__main__":
-    connect_websocket()
-
-    mqtt_client = mqtt.Client()
-    mqtt_client.on_connect = on_connect
-    mqtt_client.on_message = on_message
-    mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
-
-    # 1. Start MQTT in a background thread
-    mqtt_client.loop_start()
-    print("MQTT listening in background...")
-
-    # 2. Use the main thread to listen for Cloud messages
-    print("Starting Cloud listener...")
-    listen_to_websocket()
+    # Gracefully handle KeyboardInterrupt (Ctrl+C)
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nProgram terminated by user.")
