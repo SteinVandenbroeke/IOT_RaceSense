@@ -61,7 +61,12 @@ def on_message(client, userdata, msg):
 
     raw_payload = msg.payload.decode('utf-8')
     #print(f"Received from {msg.topic}: {raw_payload}")
-    data = json.loads(raw_payload)
+    try:
+        data = json.loads(raw_payload)
+    except:
+        print("Failed to read data", raw_payload)
+        return
+
     print(msg.topic)
 
     if "flag/OBU" in msg.topic:
