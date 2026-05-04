@@ -58,8 +58,10 @@ def send_to_cloud(data: dict):
 
 def on_message(client, userdata, msg):
     # 1. Receive data from Pycom
+    print(msg.payload)
     raw_payload = msg.payload.decode('utf-8')
     #print(f"Received from {msg.topic}: {raw_payload}")
+    printraw_payload)
     data = json.loads(raw_payload)
     print(msg.topic)
 
