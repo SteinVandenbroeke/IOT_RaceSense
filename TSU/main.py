@@ -58,13 +58,9 @@ def send_to_cloud(data: dict):
 
 def on_message(client, userdata, msg):
     # 1. Receive data from Pycom
-    if "flag/OBU" in msg.topic:
-        print(msg.payload)
 
     raw_payload = msg.payload.decode('utf-8')
     #print(f"Received from {msg.topic}: {raw_payload}")
-    if "flag/OBU" in msg.topic:
-        print(raw_payload)
     data = json.loads(raw_payload)
     print(msg.topic)
 
@@ -79,8 +75,7 @@ def on_message(client, userdata, msg):
         send_to_cloud(processed_data)
     elif "flag/OBU" in msg.topic:
         print("flag change data", data)
-        input()
-        #send_mqtt_message("flag/TSU", data["color"])
+        send_mqtt_message("flag/TSU", data["color"])
 
 def send_mqtt_message(topic: str, data: str):
     mqtt_client.publish(topic, data)
