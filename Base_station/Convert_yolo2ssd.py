@@ -52,4 +52,4 @@ def convert_dataset(input_dir, output_dir):
 
 
 if __name__ == "__main__":
-    convert_dataset("manual_dataset/labels/train", "manual/1_labels/train")
+    convert_dataset("car_detection/manual_dataset/labels/train", "manual/1_labels/train")

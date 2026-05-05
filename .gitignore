@@ -1,6 +1,7 @@
-Base_station/output_keypoints
-Base_station/output_mask
-Base_station/carla_dataset
-Base_station/manual_dataset
+Base_station/car_detection/output_keypoints
+Base_station/car_detection/carla_dataset
+Base_station/car_detection/manual_dataset
+Base_station/track_detection/carla_dataset_lines
+Base_station/track_detection/carla_dataset_road
 Base_station/models
 Base_station/finetuned_models

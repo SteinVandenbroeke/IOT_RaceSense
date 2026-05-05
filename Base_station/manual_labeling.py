@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 import os
 
 # 1. Setup paths for your new folder structure
-BASE_DIR = 'manual_dataset'
+BASE_DIR = 'car_detection/manual_dataset'
 xml_file = os.path.join(BASE_DIR, 'annotations.xml')  # Make sure your XML is named this!
 output_dir = os.path.join(BASE_DIR, 'labels')
 

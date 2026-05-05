@@ -2,8 +2,8 @@ import os
 from PIL import Image
 
 # Path to your training and validation images
-TRAIN_IMG_DIR = "carla_dataset/images/train"
-VAL_IMG_DIR = "carla_dataset/images/val"
+TRAIN_IMG_DIR = "car_detection/carla_dataset/images/train"
+VAL_IMG_DIR = "car_detection/carla_dataset/images/val"
 
 
 def find_corrupted_images(directory):
