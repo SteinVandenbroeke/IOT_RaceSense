@@ -231,23 +231,23 @@ async def get_all_sessions():
                        'Spa-Francorchamps'                           as track, \
                        'Race'                                        as type, \
                        COALESCE( \
-                                       json_agg( \
-                                       json_build_object( \
-                                               'id', sub.car_id, \
-                                               'topSpeed', sub.top_speed, \
-                                               'laps', sub.packet_count, \
-                                               'bestLap', 'N/A' \
-                                       ) \
-                                               ) FILTER (WHERE sub.car_id IS NOT NULL), '[]'::json \
+                               (SELECT json_agg(
+                                               json_build_object(
+                                                       'id', car_data.car_id,
+                                                       'topSpeed', car_data.top_speed,
+                                                       'laps', car_data.packet_count,
+                                                       'bestLap', 'N/A'
+                                               )
+                                       )
+                                FROM (SELECT car_id,
+                                             COALESCE(ROUND(MAX(speed)::numeric, 1), 0) as top_speed,
+                                             COUNT(id)                                  as packet_count \
+                                      FROM telemetry_raw \
+                                      WHERE session_id = s.id \
+                                      GROUP BY car_id) car_data), \
+                               '[]'::json \
                        )                                             as cars
                 FROM sessions s
-                         LEFT JOIN (SELECT session_id, \
-                                           car_id, \
-                                           COALESCE(ROUND(MAX(speed)::numeric, 1), 0) as top_speed, \
-                                           COUNT(*)                                   as packet_count \
-                                    FROM telemetry_raw \
-                                    GROUP BY session_id, car_id) sub ON s.id = sub.session_id
-                GROUP BY s.id
                 ORDER BY s.id DESC \
                 """
 
@@ -256,8 +256,10 @@ async def get_all_sessions():
         results = []
         for record in records:
             row = dict(record)
+            # asyncpg usually returns JSON as a string, parse it back to a Python list
             if isinstance(row['cars'], str):
                 row['cars'] = json.loads(row['cars'])
             results.append(row)
 
+        print(f"API Sending: {json.dumps(results, indent=2)}")  # Debugging print!
         return results
