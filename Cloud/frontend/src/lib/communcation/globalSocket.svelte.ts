@@ -27,6 +27,10 @@ export interface CarTelemetry {
 	};
 	Speed?: CornerData | number;
 	RPM?: number;
+
+	position?: number;
+	gapToAhead?: string;
+	gapToLeader?: string;
 }
 
 // 2. Define the new outer wrapper that the Coral is sending
@@ -59,12 +63,18 @@ class GlobalSocket {
 	// Inject fake cars for UI testing
 	loadDemoFleet() {
 		this.cars = {
-			0: { Speed: 245, TempAndHumidity: { temp: 85, humidity: 40, timestamp: [] }, RPM: 6200 },
-			4: { Speed: 312, TempAndHumidity: { temp: 92, humidity: 42, timestamp: [] }, RPM: 7400 },
-			7: { Speed: 0, TempAndHumidity: { temp: 60, humidity: 45, timestamp: [] }, RPM: 0 },
-			99: { Speed: 180, TempAndHumidity: { temp: 78, humidity: 39, timestamp: [] }, RPM: 5000 }
+			4: { position: 1, gapToAhead: 'Leader', gapToLeader: 'Leader' },
+			7: { position: 2, gapToAhead: '+1.204', gapToLeader: '+1.204' },
+			0: { position: 3, gapToAhead: '+0.850', gapToLeader: '+2.054' },
+			99: { position: 4, gapToAhead: '+4.100', gapToLeader: '+6.154' },
+			12: { position: 5, gapToAhead: '+0.300', gapToLeader: '+6.454' },
+			33: { position: 6, gapToAhead: '+1.100', gapToLeader: '+7.554' },
+			55: { position: 7, gapToAhead: '+0.500', gapToLeader: '+8.054' },
+			8: { position: 8, gapToAhead: '+2.200', gapToLeader: '+10.254' },
+			42: { position: 9, gapToAhead: '+1.150', gapToLeader: '+11.404' },
+			23: { position: 10, gapToAhead: '+5.000', gapToLeader: '+16.404' }
 		};
-		this.selectedCarId = 4; // Auto-select Car 4
+		this.selectedCarId = 4;
 	}
 
 	connect() {
