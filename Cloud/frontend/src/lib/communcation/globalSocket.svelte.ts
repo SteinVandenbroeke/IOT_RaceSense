@@ -72,7 +72,11 @@ class GlobalSocket {
 			55: { position: 7, gapToAhead: '+0.500', gapToLeader: '+8.054' },
 			8: { position: 8, gapToAhead: '+2.200', gapToLeader: '+10.254' },
 			42: { position: 9, gapToAhead: '+1.150', gapToLeader: '+11.404' },
-			23: { position: 10, gapToAhead: '+5.000', gapToLeader: '+16.404' }
+			23: { position: 11, gapToAhead: '+12.300', gapToLeader: '+23.704' },
+			88: { position: 12, gapToAhead: '+1.200', gapToLeader: '+24.904' },
+			25: { position: 13, gapToAhead: '+0.834', gapToLeader: '+25.738' },
+			83: { position: 14, gapToAhead: '+1.325', gapToLeader: '+27.063' },
+			45: { position: 15, gapToAhead: '+0.354', gapToLeader: '+27.417' }
 		};
 		this.selectedCarId = 4;
 	}
