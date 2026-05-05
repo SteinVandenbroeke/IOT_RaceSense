@@ -1,60 +1,37 @@
 import os
-import asyncpg
-import asyncio
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from sqlmodel import SQLModel
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.orm import sessionmaker
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-DB_URL = os.getenv("DATABASE_URL")
+# We MUST import the models here so SQLModel knows they exist before creating tables
+from app.models import Session, TelemetryRaw
 
+# SQLAlchemy needs a specific prefix to know we are using the asyncpg driver
+DB_URL = os.getenv("DATABASE_URL").replace("postgresql://", "postgresql+asyncpg://")
 
-async def init_tables(pool):
-    async with pool.acquire() as connection:
-        await connection.execute("""
-                                 CREATE TABLE IF NOT EXISTS sessions
-                                 (
-                                     id            SERIAL PRIMARY KEY,
-                                     status        VARCHAR(20) DEFAULT 'Active',
-                                     start_time    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
-                                     last_activity TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
-                                 );
+# Create the async engine
+engine = create_async_engine(DB_URL, echo=False)
 
-                                 CREATE TABLE IF NOT EXISTS telemetry_raw
-                                 (
-                                     id            SERIAL PRIMARY KEY,
-                                     session_id    INTEGER REFERENCES sessions (id),
-                                     car_id        INTEGER,
-                                     accel_roll    REAL,
-                                     accel_pitch   REAL,
-                                     accel_g_force REAL,
-                                     accel_x       REAL,
-                                     accel_y       REAL,
-                                     accel_z       REAL,
-                                     temp_surface  REAL,
-                                     temp_humidity REAL,
-                                     pressure      REAL,
-                                     altitude      REAL,
-                                     speed         REAL,
-                                     rpm           INTEGER,
-                                     payload       JSONB,
-                                     received_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                                 );
-                                 """)
-
+async def init_db():
+    async with engine.begin() as conn:
+        # This tells SQLModel to build the tables based on our Python classes
+        await conn.run_sync(SQLModel.metadata.create_all)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Attempting to connect to PostgreSQL...")
-    for _ in range(5):
-        try:
-            app.state.db_pool = await asyncpg.create_pool(DB_URL)
-            print("Successfully connected to the database!")
-            await init_tables(app.state.db_pool)
-            break
-        except Exception as e:
-            print(f"Database not ready yet, retrying in 2 seconds... ({e})")
-            await asyncio.sleep(2)
-    else:
-        raise Exception("Failed to connect to the database after 5 attempts.")
-
+    print("Initializing SQLModel Database...")
+    await init_db()
+    print("Database tables verified!")
     yield
-    await app.state.db_pool.close()
+    await engine.dispose()
+
+# This is a FastAPI dependency we will use to inject the DB session into our routes
+async def get_session() -> AsyncSession:
+    async_session = sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
+    async with async_session() as session:
+        yield session

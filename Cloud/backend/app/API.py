@@ -1,6 +1,13 @@
 import json
-from datetime import datetime, timezone
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request
+from datetime import datetime, timezone, timedelta
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from sqlmodel import select, update
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import func
+
+# Import our database engine, session dependency, and our new Data Models
+from app.database import engine, get_session
+from app.models import Session, TelemetryRaw
 
 router = APIRouter()
 
@@ -55,7 +62,6 @@ async def websocket_ui_endpoint(websocket: WebSocket):
 @router.websocket("/ws/coral")
 async def websocket_coral_endpoint(websocket: WebSocket):
     await websocket.accept()
-    pool = websocket.app.state.db_pool
 
     try:
         while True:
@@ -73,54 +79,62 @@ async def websocket_coral_endpoint(websocket: WebSocket):
                     if sensor in sensor_readings and "timestamp" in sensor_readings[sensor]:
                         sensor_readings[sensor]["timestamp"] = pycom_rtc_to_iso(sensor_readings[sensor]["timestamp"])
 
-            clean_data_text = json.dumps(payload)
+            # Extract variables safely
+            accel = sensor_readings.get("Accelerometer", {})
+            temp_humid = sensor_readings.get("TempAndHumidity", {})
+            press_alt = sensor_readings.get("PressureAndAltitude", {})
+            accel_array = accel.get("acceleration", [None, None, None])
 
-            async with pool.acquire() as connection:
-                await connection.execute("""
-                                         UPDATE sessions
-                                         SET status = 'Completed'
-                                         WHERE status = 'Active'
-                                           AND last_activity < NOW() - INTERVAL '1 minute'
-                                         """)
+            # --- ORM DATABASE TRANSACTIONS ---
+            # WebSockets don't use standard FastAPI 'Depends', so we open a session manually
+            async with AsyncSession(engine) as db_session:
 
-                session_row = await connection.fetchrow("SELECT id FROM sessions WHERE status = 'Active' LIMIT 1")
+                # 1. Update stale sessions
+                one_min_ago = datetime.now(timezone.utc) - timedelta(minutes=1)
+                await db_session.exec(
+                    update(Session)
+                    .where(Session.status == "Active")
+                    .where(Session.last_activity < one_min_ago)
+                    .values(status="Completed")
+                )
 
-                if not session_row:
-                    session_id = await connection.fetchval(
-                        "INSERT INTO sessions (status) VALUES ('Active') RETURNING id")
-                    print(f"New Session Started: {session_id}")
+                # 2. Find or Create Active Session
+                result = await db_session.exec(select(Session).where(Session.status == "Active"))
+                active_session = result.first()
+
+                if not active_session:
+                    active_session = Session(status="Active")
+                    db_session.add(active_session)
+                    await db_session.commit()
+                    await db_session.refresh(active_session)
+                    print(f"New Session Started: {active_session.id}")
                 else:
-                    session_id = session_row['id']
-                    await connection.execute("UPDATE sessions SET last_activity = NOW() WHERE id = $1", session_id)
+                    active_session.last_activity = datetime.now(timezone.utc)
+                    db_session.add(active_session)
 
-                accel = sensor_readings.get("Accelerometer", {})
-                temp_humid = sensor_readings.get("TempAndHumidity", {})
-                press_alt = sensor_readings.get("PressureAndAltitude", {})
-                accel_array = accel.get("acceleration", [None, None, None])
+                # 3. Insert Telemetry Object
+                new_telemetry = TelemetryRaw(
+                    session_id=active_session.id,
+                    car_id=car_id,
+                    accel_roll=accel.get("roll"),
+                    accel_pitch=accel.get("pitch"),
+                    accel_g_force=accel.get("g_force"),
+                    accel_x=accel_array[0] if len(accel_array) > 0 else None,
+                    accel_y=accel_array[1] if len(accel_array) > 1 else None,
+                    accel_z=accel_array[2] if len(accel_array) > 2 else None,
+                    temp_surface=temp_humid.get("temp"),
+                    temp_humidity=temp_humid.get("humidity"),
+                    pressure=press_alt.get("pressure"),
+                    altitude=press_alt.get("altitude"),
+                    speed=sensor_readings.get("Speed"),
+                    rpm=sensor_readings.get("RPM"),
+                    payload=payload  # Python Dict goes directly into the JSONB column!
+                )
+                db_session.add(new_telemetry)
+                await db_session.commit()
 
-                await connection.execute("""
-                                         INSERT INTO telemetry_raw (session_id, car_id,
-                                                                    accel_roll, accel_pitch, accel_g_force,
-                                                                    accel_x, accel_y, accel_z,
-                                                                    temp_surface, temp_humidity,
-                                                                    pressure, altitude,
-                                                                    speed, rpm,
-                                                                    payload)
-                                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-                                                 $15::jsonb)
-                                         """,
-                                         session_id, car_id,
-                                         accel.get("roll"), accel.get("pitch"), accel.get("g_force"),
-                                         accel_array[0] if len(accel_array) > 0 else None,
-                                         accel_array[1] if len(accel_array) > 1 else None,
-                                         accel_array[2] if len(accel_array) > 2 else None,
-                                         temp_humid.get("temp"), temp_humid.get("humidity"),
-                                         press_alt.get("pressure"), press_alt.get("altitude"),
-                                         sensor_readings.get("Speed"), sensor_readings.get("RPM"),
-                                         clean_data_text
-                                         )
-
-            await manager.broadcast_to_ui(clean_data_text)
+            # --- BROADCAST ---
+            await manager.broadcast_to_ui(json.dumps(payload))
 
     except WebSocketDisconnect:
         print("Coral Dev Board disconnected.")
@@ -129,43 +143,49 @@ async def websocket_coral_endpoint(websocket: WebSocket):
 
 
 @router.get("/api/sessions")
-async def get_all_sessions(request: Request):
-    pool = request.app.state.db_pool
-    async with pool.acquire() as connection:
-        query = """
-                SELECT s.id, \
-                       s.status, \
-                       TO_CHAR(s.start_time, 'Mon DD, YYYY HH24:MI') as date, \
-                       'Spa-Francorchamps'                           as track, \
-                       'Race'                                        as type, \
-                       (SELECT COALESCE(
-                                       json_agg(
-                                               json_build_object(
-                                                       'id', car_id,
-                                                       'topSpeed', top_speed,
-                                                       'laps', packet_count,
-                                                       'bestLap', 'N/A'
-                                               )
-                                       ),
-                                       '[]'::json
-                               )
-                        FROM (SELECT car_id,
-                                     COALESCE(ROUND(MAX(speed)::numeric, 1), 0) as top_speed,
-                                     COUNT(id)                                  as packet_count \
-                              FROM telemetry_raw \
-                              WHERE session_id = s.id \
-                              GROUP BY car_id) sub)                  as cars
-                FROM sessions s
-                ORDER BY s.id DESC \
-                """
+async def get_all_sessions(db_session: AsyncSession = Depends(get_session)):
+    """
+    Fetches all sessions and dynamically aggregates car telemetry statistics!
+    """
+    # 1. Fetch all sessions from the database
+    sessions_result = await db_session.exec(select(Session).order_by(Session.id.desc()))
+    db_sessions = sessions_result.all()
 
-        records = await connection.fetch(query)
+    # 2. Ask the database to efficiently calculate Top Speed and Packet Count per car/session
+    stats_stmt = (
+        select(
+            TelemetryRaw.session_id,
+            TelemetryRaw.car_id,
+            func.max(TelemetryRaw.speed).label("top_speed"),
+            func.count(TelemetryRaw.id).label("packet_count")
+        )
+        .group_by(TelemetryRaw.session_id, TelemetryRaw.car_id)
+    )
+    stats_result = await db_session.exec(stats_stmt)
+    car_stats = stats_result.all()  # Returns a list of tuples: (session_id, car_id, top_speed, packet_count)
 
-        results = []
-        for record in records:
-            row = dict(record)
-            if isinstance(row['cars'], str):
-                row['cars'] = json.loads(row['cars'])
-            results.append(row)
+    # 3. Stitch it together into a perfect JSON tree using Python!
+    results = []
+    for s in db_sessions:
+        # Find all car stats that belong to this specific session
+        session_cars = []
+        for stat in car_stats:
+            if stat.session_id == s.id and stat.car_id is not None:
+                session_cars.append({
+                    "id": stat.car_id,
+                    "topSpeed": round(stat.top_speed, 1) if stat.top_speed else 0,
+                    "laps": stat.packet_count,
+                    "bestLap": "N/A"
+                })
 
-        return results
+        results.append({
+            "id": s.id,
+            "status": s.status,
+            # Format the datetime cleanly for the UI
+            "date": s.start_time.strftime("%b %d, %Y %H:%M"),
+            "track": "Spa-Francorchamps",
+            "type": "Race",
+            "cars": session_cars
+        })
+
+    return results
