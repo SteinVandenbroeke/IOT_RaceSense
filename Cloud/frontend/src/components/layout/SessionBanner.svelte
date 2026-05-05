@@ -45,31 +45,27 @@
 	// --- Carousel Logic ---
 	let showLeaderGap = $state(false);
 	let carouselRef: HTMLDivElement;
-	let gapTimer: ReturnType<typeof setInterval>;
 	let scrollTimer: ReturnType<typeof setInterval>;
 
 	onMount(() => {
-		// 1. Toggle between Gap to Ahead and Gap to Leader every 4 seconds
-		gapTimer = setInterval(() => {
-			showLeaderGap = !showLeaderGap;
-		}, 4000);
-
-		// 2. Auto-rotate the carousel every 3 seconds (pauses if user hovers)
+		// Auto-rotate the carousel every 3 seconds (pauses if user hovers)
 		scrollTimer = setInterval(() => {
 			if (carouselRef && !carouselRef.matches(':hover')) {
-				// Scroll to the right by ~150px
+				// Scroll to the right by ~160px
 				carouselRef.scrollBy({ left: 160, behavior: 'smooth' });
 
 				// If we hit the end, snap smoothly back to the beginning
 				if (carouselRef.scrollLeft + carouselRef.clientWidth >= carouselRef.scrollWidth - 10) {
 					carouselRef.scrollTo({ left: 0, behavior: 'smooth' });
+
+					// Toggle the gap mode ONLY when a full rotation is complete!
+					showLeaderGap = !showLeaderGap;
 				}
 			}
 		}, 3000);
 	});
 
 	onDestroy(() => {
-		clearInterval(gapTimer);
 		clearInterval(scrollTimer);
 	});
 
@@ -139,10 +135,6 @@
 
 			<!-- The scrolling carousel wrapper -->
 			<div class="relative flex-1 min-w-0 overflow-hidden">
-
-				<!-- Left fade to cleanly hide cars as they scroll out -->
-				<div class="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-zinc-900 to-transparent z-10 pointer-events-none"></div>
-
 				<div
 					bind:this={carouselRef}
 					class="flex gap-2 overflow-x-auto scrollbar-none snap-x snap-mandatory scroll-smooth w-full px-2"

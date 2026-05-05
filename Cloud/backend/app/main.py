@@ -218,3 +218,49 @@ async def websocket_coral_endpoint(websocket: WebSocket):
         print("Coral Dev Board disconnected.")
     except Exception as e:
         print(f"Error processing message: {e}")
+
+
+@app.get("/api/sessions")
+async def get_all_sessions():
+    pool = app.state.db_pool
+    async with pool.acquire() as connection:
+        # We use a subquery to aggregate car data, calculating top speed
+        # and counting telemetry packets (as a placeholder for "laps")
+        query = """
+                SELECT s.id, \
+                       s.status, \
+                       TO_CHAR(s.start_time, 'Mon DD, YYYY HH24:MI') as date, \
+                       'Spa-Francorchamps'                           as track, -- Mocked until we add GPS track detection \
+                       'Race'                                        as type,  -- Mocked for now \
+                       COALESCE( \
+                                       json_agg( \
+                                       json_build_object( \
+                                               'id', sub.car_id, \
+                                               'topSpeed', sub.top_speed, \
+                                               'laps', sub.packet_count, \
+                                               'bestLap', 'N/A' \
+                                       ) \
+                                               ) FILTER (WHERE sub.car_id IS NOT NULL), '[]'::json \
+                       )                                             as cars
+                FROM sessions s
+                         LEFT JOIN (SELECT session_id, \
+                                           car_id, \
+                                           COALESCE(ROUND(MAX(speed)::numeric, 1), 0) as top_speed, \
+                                           COUNT(*)                                   as packet_count \
+                                    FROM telemetry_raw \
+                                    GROUP BY session_id, car_id) sub ON s.id = sub.session_id
+                GROUP BY s.id
+                ORDER BY s.id DESC \
+                """
+
+        records = await connection.fetch(query)
+
+        # Parse the JSON string from Postgres back into a Python list
+        results = []
+        for record in records:
+            row = dict(record)
+            if isinstance(row['cars'], str):
+                row['cars'] = json.loads(row['cars'])
+            results.append(row)
+
+        return results
