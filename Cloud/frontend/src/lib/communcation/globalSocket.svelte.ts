@@ -27,6 +27,10 @@ export interface CarTelemetry {
 	};
 	Speed?: CornerData | number;
 	RPM?: number;
+
+	position?: number;
+	gapToAhead?: string;
+	gapToLeader?: string;
 }
 
 // 2. Define the new outer wrapper that the Coral is sending
@@ -55,6 +59,27 @@ class GlobalSocket {
 
 	private readonly WS_URL =
 		typeof window !== 'undefined' ? `wss://${window.location.host}/ws/ui` : '';
+
+	// Inject fake cars for UI testing
+	loadDemoFleet() {
+		this.cars = {
+			4: { position: 1, gapToAhead: 'Leader', gapToLeader: 'Leader' },
+			7: { position: 2, gapToAhead: '+1.204', gapToLeader: '+1.204' },
+			0: { position: 3, gapToAhead: '+0.850', gapToLeader: '+2.054' },
+			99: { position: 4, gapToAhead: '+4.100', gapToLeader: '+6.154' },
+			12: { position: 5, gapToAhead: '+0.300', gapToLeader: '+6.454' },
+			33: { position: 6, gapToAhead: '+1.100', gapToLeader: '+7.554' },
+			55: { position: 7, gapToAhead: '+0.500', gapToLeader: '+8.054' },
+			8: { position: 8, gapToAhead: '+2.200', gapToLeader: '+10.254' },
+			42: { position: 9, gapToAhead: '+1.150', gapToLeader: '+11.404' },
+			23: { position: 11, gapToAhead: '+12.300', gapToLeader: '+23.704' },
+			88: { position: 12, gapToAhead: '+1.200', gapToLeader: '+24.904' },
+			25: { position: 13, gapToAhead: '+0.834', gapToLeader: '+25.738' },
+			83: { position: 14, gapToAhead: '+1.325', gapToLeader: '+27.063' },
+			45: { position: 15, gapToAhead: '+0.354', gapToLeader: '+27.417' }
+		};
+		this.selectedCarId = 4;
+	}
 
 	connect() {
 		if (typeof window === 'undefined') return;
