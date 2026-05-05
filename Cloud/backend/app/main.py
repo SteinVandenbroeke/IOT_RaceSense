@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import lifespan
-from app.api import router
+from app.API import router
 
 app = FastAPI(lifespan=lifespan)
 
