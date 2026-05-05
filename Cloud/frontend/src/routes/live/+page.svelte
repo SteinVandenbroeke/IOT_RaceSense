@@ -16,7 +16,11 @@
     <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-zinc-800 pb-6">
         <div>
             <h1 id="live-telemetry-heading" class="text-3xl font-black text-white tracking-tight">Live Telemetry</h1>
-            <p class="text-zinc-400 text-sm mt-1">Vehicle 04 - Currently on track</p>
+            <p class="text-emerald-400 text-sm mt-1 font-mono flex items-center gap-2">
+				<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+				VEHICLE {globalSocket.selectedCarId.toString().padStart(2, '0')}
+				<span class="text-zinc-500">- LIVE DATA FEED</span>
+			</p>
         </div>
         
         <div class="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800 shadow-inner">
