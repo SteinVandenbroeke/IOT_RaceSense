@@ -1,6 +1,7 @@
 from typing import Optional
 from datetime import datetime, timezone
 from sqlmodel import Field, SQLModel, Column
+from sqlalchemy import DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 
 
@@ -9,8 +10,14 @@ class Session(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     status: str = Field(default="Active", max_length=20)
-    start_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    last_activity: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    start_time: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True))
+    )
+    last_activity: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True))
+    )
 
 
 class TelemetryRaw(SQLModel, table=True):
@@ -39,4 +46,7 @@ class TelemetryRaw(SQLModel, table=True):
 
     # JSONB explicitly defined for PostgreSQL
     payload: dict = Field(default={}, sa_column=Column(JSONB))
-    received_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    received_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True))
+    )
