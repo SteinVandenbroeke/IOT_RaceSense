@@ -127,53 +127,60 @@
 		</div>
 
 		<!-- BOTTOM ROW: Sleek Timing Carousel -->
-		<div class="mt-3 pt-2 border-t border-zinc-800 flex items-center relative">
+		<!-- BOTTOM ROW: Sleek Timing Carousel -->
+		<div class="mt-3 pt-2 border-t border-zinc-800 flex items-center gap-3">
 
-			<!-- Indicator showing what the time column represents -->
-			<div class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-zinc-900 pr-2">
+			<!-- Indicator showing what the time column represents (Fixed Width) -->
+			<div class="w-20 shrink-0 border-r border-zinc-800/50 pr-3 flex items-center">
 				<span class="text-[9px] font-black uppercase tracking-widest text-zinc-500 transition-opacity duration-300">
 					{showLeaderGap ? 'TO LEADER' : 'INTERVAL'}
 				</span>
 			</div>
 
-			<!-- The scrolling carousel container -->
-			<div
-				bind:this={carouselRef}
-				class="flex gap-2 overflow-x-auto pl-20 scrollbar-none snap-x snap-mandatory scroll-smooth w-full"
-				style="scrollbar-width: none;"
-			>
-				{#each sortedCars as [idStr, carData]}
-					{@const carId = Number(idStr)}
-					<button
-						class="flex-shrink-0 flex items-center gap-3 px-3 py-1.5 rounded bg-zinc-950 border transition-all duration-200 snap-start
-						{globalSocket.selectedCarId === carId
-							? 'border-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.15)]'
-							: 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 hover:bg-zinc-900'}"
-						onclick={() => globalSocket.selectedCarId = carId}
-					>
-						<span class="text-xs font-black {globalSocket.selectedCarId === carId ? 'text-emerald-400' : 'text-zinc-500'} w-6 text-left">
-							P{carData.position || '-'}
-						</span>
-						<span class="w-px h-3 bg-zinc-700"></span>
-						<span class="text-xs font-bold w-12 text-center text-zinc-300">
-							CAR {carId.toString().padStart(2, '0')}
-						</span>
-						<span class="w-px h-3 bg-zinc-700"></span>
-						<span class="text-xs font-mono font-bold w-14 text-right transition-all duration-300 {showLeaderGap ? 'text-zinc-300' : 'text-zinc-400'}">
-							{showLeaderGap ? (carData.gapToLeader || 'N/A') : (carData.gapToAhead || 'N/A')}
-						</span>
-					</button>
-				{/each}
+			<!-- The scrolling carousel wrapper -->
+			<div class="relative flex-1 min-w-0 overflow-hidden">
 
-				{#if sortedCars.length === 0}
-					<div class="text-xs text-zinc-600 italic py-1 font-mono flex items-center gap-2">
-						Waiting for grid data...
-					</div>
-				{/if}
+				<!-- Left fade to cleanly hide cars as they scroll out -->
+				<div class="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-zinc-900 to-transparent z-10 pointer-events-none"></div>
+
+				<div
+					bind:this={carouselRef}
+					class="flex gap-2 overflow-x-auto scrollbar-none snap-x snap-mandatory scroll-smooth w-full px-2"
+					style="scrollbar-width: none;"
+				>
+					{#each sortedCars as [idStr, carData]}
+						{@const carId = Number(idStr)}
+						<button
+							class="flex-shrink-0 flex items-center gap-3 px-3 py-1.5 rounded bg-zinc-950 border transition-all duration-200 snap-start
+							{globalSocket.selectedCarId === carId
+								? 'border-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.15)]'
+								: 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 hover:bg-zinc-900'}"
+							onclick={() => globalSocket.selectedCarId = carId}
+						>
+							<span class="text-xs font-black {globalSocket.selectedCarId === carId ? 'text-emerald-400' : 'text-zinc-500'} w-6 text-left">
+								P{carData.position || '-'}
+							</span>
+							<span class="w-px h-3 bg-zinc-700"></span>
+							<span class="text-xs font-bold w-12 text-center text-zinc-300">
+								CAR {carId.toString().padStart(2, '0')}
+							</span>
+							<span class="w-px h-3 bg-zinc-700"></span>
+							<span class="text-xs font-mono font-bold w-14 text-right transition-all duration-300 {showLeaderGap ? 'text-zinc-300' : 'text-zinc-400'}">
+								{showLeaderGap ? (carData.gapToLeader || 'N/A') : (carData.gapToAhead || 'N/A')}
+							</span>
+						</button>
+					{/each}
+
+					{#if sortedCars.length === 0}
+						<div class="text-xs text-zinc-600 italic py-1 font-mono flex items-center gap-2">
+							Waiting for grid data...
+						</div>
+					{/if}
+				</div>
+
+				<!-- Right fade out to indicate more cars -->
+				<div class="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-zinc-900 to-transparent z-10 pointer-events-none"></div>
 			</div>
-
-			<!-- Right fade out to indicate more cars -->
-			<div class="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-zinc-900 to-transparent pointer-events-none"></div>
 		</div>
 	</section>
 {/if}
