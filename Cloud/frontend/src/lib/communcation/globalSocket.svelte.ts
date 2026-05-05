@@ -56,6 +56,17 @@ class GlobalSocket {
 	private readonly WS_URL =
 		typeof window !== 'undefined' ? `wss://${window.location.host}/ws/ui` : '';
 
+	// Inject fake cars for UI testing
+	loadDemoFleet() {
+		this.cars = {
+			0: { Speed: 245, TempAndHumidity: { temp: 85, humidity: 40, timestamp: [] }, RPM: 6200 },
+			4: { Speed: 312, TempAndHumidity: { temp: 92, humidity: 42, timestamp: [] }, RPM: 7400 },
+			7: { Speed: 0, TempAndHumidity: { temp: 60, humidity: 45, timestamp: [] }, RPM: 0 },
+			99: { Speed: 180, TempAndHumidity: { temp: 78, humidity: 39, timestamp: [] }, RPM: 5000 }
+		};
+		this.selectedCarId = 4; // Auto-select Car 4
+	}
+
 	connect() {
 		if (typeof window === 'undefined') return;
 		if (this.socket?.readyState === WebSocket.OPEN) return;
