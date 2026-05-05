@@ -225,29 +225,31 @@ async def get_all_sessions():
     pool = app.state.db_pool
     async with pool.acquire() as connection:
         query = """
+                WITH CarStats AS (SELECT session_id, \
+                                         car_id, \
+                                         COALESCE(ROUND(MAX(speed)::numeric, 1), 0) as top_speed, \
+                                         COUNT(id)                                  as packet_count \
+                                  FROM telemetry_raw \
+                                  GROUP BY session_id, car_id)
                 SELECT s.id, \
                        s.status, \
                        TO_CHAR(s.start_time, 'Mon DD, YYYY HH24:MI') as date, \
                        'Spa-Francorchamps'                           as track, \
                        'Race'                                        as type, \
                        COALESCE( \
-                               (SELECT json_agg(
-                                               json_build_object(
-                                                       'id', car_data.car_id,
-                                                       'topSpeed', car_data.top_speed,
-                                                       'laps', car_data.packet_count,
-                                                       'bestLap', 'N/A'
-                                               )
-                                       )
-                                FROM (SELECT car_id,
-                                             COALESCE(ROUND(MAX(speed)::numeric, 1), 0) as top_speed,
-                                             COUNT(id)                                  as packet_count \
-                                      FROM telemetry_raw \
-                                      WHERE session_id = s.id \
-                                      GROUP BY car_id) car_data), \
-                               '[]'::json \
+                                       json_agg( \
+                                       json_build_object( \
+                                               'id', cs.car_id, \
+                                               'topSpeed', cs.top_speed, \
+                                               'laps', cs.packet_count, \
+                                               'bestLap', 'N/A' \
+                                       ) \
+                                               ) FILTER (WHERE cs.car_id IS NOT NULL), \
+                                       '[]'::json \
                        )                                             as cars
                 FROM sessions s
+                         LEFT JOIN CarStats cs ON s.id = cs.session_id
+                GROUP BY s.id
                 ORDER BY s.id DESC \
                 """
 
@@ -256,10 +258,8 @@ async def get_all_sessions():
         results = []
         for record in records:
             row = dict(record)
-            # asyncpg usually returns JSON as a string, parse it back to a Python list
             if isinstance(row['cars'], str):
                 row['cars'] = json.loads(row['cars'])
             results.append(row)
 
-        print(f"API Sending: {json.dumps(results, indent=2)}")  # Debugging print!
         return results
