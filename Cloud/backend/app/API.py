@@ -207,13 +207,15 @@ async def get_analytics_data(session_id: int, car_id: int, db_session: AsyncSess
     telemetry = result.all()
 
     # Prepare our data arrays
+    # Prepare our data arrays
     data = {
         "timestamps": [],
-        "traction_circle": [],  # [Lateral G (X), Longitudinal G (Y)]
+        "traction_circle": [],
         "roll": [],
         "pitch": [],
         "temp": [],
-        "pressure": []
+        "pressure": [],
+        "vertical_g": []
     }
 
     if not telemetry:
@@ -226,7 +228,6 @@ async def get_analytics_data(session_id: int, car_id: int, db_session: AsyncSess
         relative_time = (t.received_at - start_time).total_seconds()
         data["timestamps"].append(round(relative_time, 2))
 
-        # Traction Circle: [accel_y (Lateral), accel_x (Longitudinal)]
         lat_g = t.accel_y if t.accel_y is not None else 0
         lon_g = t.accel_x if t.accel_x is not None else 0
         data["traction_circle"].append([round(lat_g, 2), round(lon_g, 2)])
@@ -236,5 +237,7 @@ async def get_analytics_data(session_id: int, car_id: int, db_session: AsyncSess
 
         data["temp"].append(round(t.temp_surface, 1) if t.temp_surface else 0)
         data["pressure"].append(round(t.pressure, 2) if t.pressure else 0)
+
+        data["vertical_g"].append(round(t.accel_z, 2) if t.accel_z else 0)
 
     return data

@@ -95,6 +95,44 @@
 		window.addEventListener('resize', () => chart.resize());
 		return { destroy() { chart.dispose(); } };
 	}
+
+	// --- CHART 4: SUSPENSION HARSHNESS (Vertical G) ---
+	function initSuspensionHarshness(node: HTMLElement) {
+		const chart = echarts.init(node);
+		chart.setOption({
+			backgroundColor: 'transparent',
+			tooltip: { trigger: 'axis', backgroundColor: 'rgba(24,24,27,0.9)', textStyle: { color: '#e4e4e7' } },
+			grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+			xAxis: { type: 'category', boundaryGap: false, data: telemetryData.timestamps, axisLabel: { color: '#71717a' }, name: 'Time (s)', nameLocation: 'middle', nameGap: 25 },
+			yAxis: { type: 'value', name: 'Vertical G (Z-Axis)', axisLabel: { color: '#71717a' }, splitLine: { lineStyle: { color: '#27272a' } } },
+
+			// This automatically turns the line RED when it exceeds safe limits!
+			visualMap: {
+				top: 0, right: 0,
+				pieces: [
+					{ gt: 1.5, color: '#ef4444' },          // Red for harsh positive (bump)
+					{ lt: -1.5, color: '#ef4444' },         // Red for harsh negative (bottom out)
+					{ gte: -1.5, lte: 1.5, color: '#3b82f6' } // Blue for normal driving
+				],
+				outOfRange: { color: '#999' },
+				textStyle: { color: '#a1a1aa' }
+			},
+			series: [
+				{
+					name: 'Vertical G',
+					type: 'line',
+					data: telemetryData.vertical_g,
+					markLine: {
+						silent: true,
+						lineStyle: { color: '#ef4444', type: 'dashed', opacity: 0.5 },
+						data: [{ yAxis: 1.5, name: 'Bump Limit' }, { yAxis: -1.5, name: 'Drop Limit' }]
+					}
+				}
+			]
+		});
+		window.addEventListener('resize', () => chart.resize());
+		return { destroy() { chart.dispose(); } };
+	}
 </script>
 
 <section class="max-w-7xl mx-auto space-y-8 p-4 sm:p-6 lg:p-8">
@@ -134,10 +172,18 @@
 			</div>
 		</div>
 
-		<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 shadow-lg">
-			<h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Chassis Dynamics</h2>
-			<p class="text-[10px] text-zinc-400 mb-4">Body roll and pitch degrees throughout the session.</p>
-			<div class="w-full h-[350px]" use:initChassisDynamics></div>
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+			<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 shadow-lg">
+				<h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Chassis Dynamics</h2>
+				<p class="text-[10px] text-zinc-400 mb-4">Body roll and pitch degrees throughout the session.</p>
+				<div class="w-full h-[350px]" use:initChassisDynamics></div>
+			</div>
+
+			<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 shadow-lg">
+				<h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Suspension & Kerb Strikes</h2>
+				<p class="text-[10px] text-zinc-400 mb-4">Vertical G-Force (Z-Axis). Values exceeding ±1.5G indicate harsh impacts or bottoming out.</p>
+				<div class="w-full h-[350px]" use:initSuspensionHarshness></div>
+			</div>
 		</div>
 
 	{:else}
