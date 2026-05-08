@@ -61,9 +61,9 @@
 		</div>
 
 	{:else}
-		<div class="space-y-4">
+		<div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 items-start">
 			{#if sessions.length === 0}
-				<div class="text-center py-12 border border-zinc-800 border-dashed rounded-xl">
+				<div class="col-span-full text-center py-12 border border-zinc-800 border-dashed rounded-xl">
 					<p class="text-zinc-500 font-mono">No telemetry sessions found in the database.</p>
 				</div>
 			{/if}
@@ -76,30 +76,30 @@
 					{isActive ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-zinc-800'}"
 				>
 					<button
-						class="w-full px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-zinc-800/50 transition-colors"
+						class="w-full px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-zinc-800/50 transition-colors"
 						onclick={() => toggleSession(session.id)}
 					>
-						<div class="flex items-center gap-4">
-							<div class="flex items-center justify-center w-10 h-10 rounded-lg bg-zinc-950 border border-zinc-800 font-mono text-sm font-bold text-zinc-300">
+						<div class="flex items-center gap-4 min-w-0">
+							<div class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-zinc-950 border border-zinc-800 font-mono text-sm font-bold text-zinc-300">
 								#{session.id}
 							</div>
-							<div class="text-left">
-								<h2 class="font-bold text-white flex items-center gap-2">
-									{session.track}
+							<div class="text-left truncate">
+								<h2 class="font-bold text-white flex items-center gap-2 truncate">
+									<span class="truncate">{session.track}</span>
 									{#if isActive}
-										<span class="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+										<span class="flex-shrink-0 flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
 											<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-											Live Now
+											Live
 										</span>
 									{:else}
-										<span class="text-xs font-normal text-zinc-500 px-2 py-0.5 rounded bg-zinc-800">{session.type}</span>
+										<span class="flex-shrink-0 text-xs font-normal text-zinc-500 px-2 py-0.5 rounded bg-zinc-800">{session.type}</span>
 									{/if}
 								</h2>
-								<p class="text-xs text-zinc-400 mt-0.5">{session.date} • {session.cars.length} Cars Recorded</p>
+								<p class="text-xs text-zinc-400 mt-0.5 truncate">{session.date} • {session.cars.length} Cars</p>
 							</div>
 						</div>
 
-						<div class="text-zinc-500 transition-transform duration-300 {isExpanded ? 'rotate-180' : ''}">
+						<div class="flex-shrink-0 text-zinc-500 transition-transform duration-300 {isExpanded ? 'rotate-180' : ''}">
 							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
 						</div>
 					</button>
@@ -107,30 +107,30 @@
 					{#if isExpanded}
 						<div class="border-t border-zinc-800/50 bg-zinc-950 p-0 animate-in slide-in-from-top-2 duration-200">
 
-							<div class="grid grid-cols-12 gap-4 px-6 py-2 border-b border-zinc-800/50 text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-900/80">
-								<div class="col-span-2 sm:col-span-1">Pos</div>
-								<div class="col-span-2 sm:col-span-1">Car</div>
-								<div class="col-span-5 sm:col-span-8">Driver / Team</div>
-								<div class="col-span-3 sm:col-span-2 text-right">Action</div>
+							<div class="grid grid-cols-12 gap-3 px-5 py-2 border-b border-zinc-800/50 text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-900/80">
+								<div class="col-span-2">Pos</div>
+								<div class="col-span-3 sm:col-span-2">Car</div>
+								<div class="col-span-4 sm:col-span-5">Driver</div>
+								<div class="col-span-3 text-right">Action</div>
 							</div>
 
-							<div class="divide-y divide-zinc-800/50 max-h-[400px] overflow-y-auto scrollbar-thin">
+							<div class="divide-y divide-zinc-800/50 max-h-[350px] overflow-y-auto scrollbar-thin">
 								{#each session.cars as car, index}
-									<div class="grid grid-cols-12 gap-4 px-6 py-2 items-center hover:bg-zinc-800/50 transition-colors group">
+									<div class="grid grid-cols-12 gap-3 px-5 py-2 items-center hover:bg-zinc-800/50 transition-colors group">
 
-										<div class="col-span-2 sm:col-span-1 text-xs font-black {isActive ? 'text-emerald-400' : 'text-zinc-400'}">
+										<div class="col-span-2 text-xs font-black {isActive ? 'text-emerald-400' : 'text-zinc-400'}">
 											P{index + 1}
 										</div>
 
-										<div class="col-span-2 sm:col-span-1 text-sm font-mono font-bold text-white">
+										<div class="col-span-3 sm:col-span-2 text-sm font-mono font-bold text-white">
 											#{car.id.toString().padStart(2, '0')}
 										</div>
 
-										<div class="col-span-5 sm:col-span-8 text-sm font-medium text-zinc-300 truncate">
-											Driver {car.id} <span class="text-xs text-zinc-600 hidden sm:inline ml-2">Team {car.id}</span>
+										<div class="col-span-4 sm:col-span-5 text-sm font-medium text-zinc-300 truncate">
+											Driver {car.id}
 										</div>
 
-										<div class="col-span-3 sm:col-span-2 text-right">
+										<div class="col-span-3 text-right">
 											{#if isActive}
 												<a
 													href="/live?car={car.id}"
