@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	// 1. Define our State
 	let sessions = $state<any[]>([]);
 	let expandedSessions = $state<number[]>([]);
 	let isLoading = $state(true);
 	let error = $state<string | null>(null);
 
-	// 2. Fetch from the Database when the page loads
 	onMount(async () => {
 		try {
 			const res = await fetch('/api/sessions');
@@ -15,7 +13,6 @@
 
 			sessions = await res.json();
 
-			// Automatically expand any sessions marked as 'Active'
 			expandedSessions = sessions
 				.filter(s => s.status === 'Active')
 				.map(s => s.id);
@@ -43,7 +40,6 @@
 		<p class="text-zinc-400 text-sm mt-1">Select an active car to follow live, or analyze past telemetry.</p>
 	</header>
 
-	<!-- Loading State -->
 	{#if isLoading}
 		<div class="flex flex-col items-center justify-center py-20 text-zinc-500 font-mono space-y-4">
 			<svg class="w-8 h-8 animate-spin text-emerald-500" fill="none" viewBox="0 0 24 24">
@@ -52,7 +48,6 @@
 			<span>Querying PostgreSQL Data Lake...</span>
 		</div>
 
-	<!-- Error State -->
 	{:else if error}
 		<div class="bg-red-500/10 border border-red-500/20 rounded-xl p-6 text-center">
 			<h3 class="text-red-400 font-bold mb-2">Connection Error</h3>
@@ -65,7 +60,6 @@
 			</button>
 		</div>
 
-	<!-- Loaded State -->
 	{:else}
 		<div class="space-y-4">
 			{#if sessions.length === 0}
@@ -111,50 +105,50 @@
 					</button>
 
 					{#if isExpanded}
-						<div class="border-t border-zinc-800/50 bg-zinc-950/30 p-6 animate-in slide-in-from-top-2 duration-200">
-							<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+						<div class="border-t border-zinc-800/50 bg-zinc-950 p-0 animate-in slide-in-from-top-2 duration-200">
 
-								{#each session.cars as car}
-									<div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex flex-col justify-between hover:border-zinc-700 transition-colors">
-										<div class="flex justify-between items-start mb-4">
-											<div>
-												<span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Vehicle</span>
-												<h3 class="text-xl font-black text-white font-mono">CAR {car.id.toString().padStart(2, '0')}</h3>
-											</div>
+							<div class="grid grid-cols-12 gap-4 px-6 py-2 border-b border-zinc-800/50 text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-900/80">
+								<div class="col-span-2 sm:col-span-1">Pos</div>
+								<div class="col-span-2 sm:col-span-1">Car</div>
+								<div class="col-span-5 sm:col-span-8">Driver / Team</div>
+								<div class="col-span-3 sm:col-span-2 text-right">Action</div>
+							</div>
+
+							<div class="divide-y divide-zinc-800/50 max-h-[400px] overflow-y-auto scrollbar-thin">
+								{#each session.cars as car, index}
+									<div class="grid grid-cols-12 gap-4 px-6 py-2 items-center hover:bg-zinc-800/50 transition-colors group">
+
+										<div class="col-span-2 sm:col-span-1 text-xs font-black {isActive ? 'text-emerald-400' : 'text-zinc-400'}">
+											P{index + 1}
+										</div>
+
+										<div class="col-span-2 sm:col-span-1 text-sm font-mono font-bold text-white">
+											#{car.id.toString().padStart(2, '0')}
+										</div>
+
+										<div class="col-span-5 sm:col-span-8 text-sm font-medium text-zinc-300 truncate">
+											Driver {car.id} <span class="text-xs text-zinc-600 hidden sm:inline ml-2">Team {car.id}</span>
+										</div>
+
+										<div class="col-span-3 sm:col-span-2 text-right">
 											{#if isActive}
-												<div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></div>
+												<a
+													href="/live?car={car.id}"
+													class="inline-block px-3 py-1 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-zinc-900 border border-emerald-500/20 text-[10px] font-black uppercase tracking-wider rounded transition-colors"
+												>
+													Live
+												</a>
+											{:else}
+												<a
+													href="/analytics?session={session.id}&car={car.id}"
+													class="inline-block px-3 py-1 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white border border-zinc-700 text-[10px] font-bold uppercase tracking-wider rounded transition-colors"
+												>
+													Data
+												</a>
 											{/if}
 										</div>
-
-										<div class="grid grid-cols-2 gap-4 mb-4">
-											<div>
-												<span class="block text-[10px] text-zinc-500 uppercase">Telemetry Packets</span>
-												<span class="font-mono text-sm text-zinc-300">{car.laps}</span>
-											</div>
-											<div>
-												<span class="block text-[10px] text-zinc-500 uppercase">Top Speed</span>
-												<span class="font-mono text-sm text-zinc-300">{car.topSpeed} km/h</span>
-											</div>
-										</div>
-
-										{#if isActive}
-											<a
-												href="/live?car={car.id}"
-												class="w-full block text-center px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-black uppercase tracking-wider rounded transition-colors"
-											>
-												Follow Live
-											</a>
-										{:else}
-											<a
-												href="/analytics?session={session.id}&car={car.id}"
-												class="w-full block text-center px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold uppercase tracking-wider rounded transition-colors"
-											>
-												View Analytics
-											</a>
-										{/if}
 									</div>
 								{/each}
-
 							</div>
 						</div>
 					{/if}
