@@ -5,14 +5,17 @@
 	import Tachometer from '../../components/gauges/tachometer.svelte';
 	import GMeter from '../../components/g-meter.svelte';
 	import TrackWidget from '../../components/trackmap/trackWidget.svelte';
-    import { globalSocket } from '$lib/communcation/globalSocket.svelte';
-    import RollPitchCard from '../../components/rollPitch/RollPitchCard.svelte';
+	import { globalSocket } from '$lib/communcation/globalSocket.svelte';
+	import RollPitchCard from '../../components/rollPitch/RollPitchCard.svelte';
 
 	let displayMode: 'analog' | 'digital' = $state('digital');
+
+	// 1. Reactively grab the telemetry for whichever car is currently selected
+	let activeCar = $derived(globalSocket.cars[globalSocket.selectedCarId] || {});
 </script>
 
 <section aria-labelledby="live-telemetry-heading" class="space-y-8 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-    
+
     <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-zinc-800 pb-6">
         <div>
             <h1 id="live-telemetry-heading" class="text-3xl font-black text-white tracking-tight">Live Telemetry</h1>
@@ -22,15 +25,15 @@
 				<span class="text-zinc-500">- LIVE DATA FEED</span>
 			</p>
         </div>
-        
+
         <div class="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800 shadow-inner">
-            <button 
+            <button
                 class="px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md transition-all duration-200 {displayMode === 'digital' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}"
                 onclick={() => displayMode = 'digital'}
             >
                 Digital
             </button>
-            <button 
+            <button
                 class="px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md transition-all duration-200 {displayMode === 'analog' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}"
                 onclick={() => displayMode = 'analog'}
             >
@@ -44,13 +47,14 @@
             <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Digital Cluster</h2>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div class="col-span-1">
-                    <Speedometer value={274} unit="km/h"/>
+					<Speedometer value={Math.round(activeCar.Speed || 0)} unit="km/h"/>
                 </div>
+
                 <div class="col-span-1 lg:col-span-2">
-                    <Tachometer 
-                        value={6950}
-                        max={7500} 
-                        segments={25} 
+					<Tachometer
+                        value={activeCar.RPM || 0}
+                        max={7500}
+                        segments={25}
 						stepSize={500}
                         demo={false}
                         ranges={[
@@ -64,27 +68,27 @@
         {:else}
             <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Analog Instruments</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Gauge value={184} max={300} stepSize={20} intermediateTicks={1} unit="km/h" demo={true} />
-                
-                <Gauge 
-                    value={6.4} max={7.5} precision={1} stepSize={1} intermediateTicks={4} unit="rpm{'\n'}x1000" demo={true}
+				<Gauge value={Math.round(activeCar.Speed || 0)} max={300} stepSize={20} intermediateTicks={1} unit="km/h" demo={false} />
+
+				<Gauge
+                    value={(activeCar.RPM || 0) / 1000} max={7.5} precision={1} stepSize={1} intermediateTicks={4} unit="rpm{'\n'}x1000" demo={false}
                     ranges={[
                         { min: 0, max: 5.99, colorClass: 'text-white' },
                         { min: 6, max: 6.99, colorClass: 'text-orange-500' },
                         { min: 7, max: 7.5, colorClass: 'text-red-500' }
                     ]}
                 />
-                
-                <Gauge 
-                    value={globalSocket.telemetry?.PressureAndAltitude?.pressure || 0} max={8} stepSize={2} intermediateTicks={3} precision={1} unit="bar" demo={false}
+
+                <Gauge
+                    value={activeCar.PressureAndAltitude?.pressure || 0} max={8} stepSize={2} intermediateTicks={3} precision={1} unit="bar" demo={false}
                     ranges={[
                         { min: 0, max: 2.9, colorClass: 'text-red-500' },
                         { min: 3, max: 8, colorClass: 'text-emerald-400' }
                     ]}
                 />
-                
-                <Gauge 
-                    value={globalSocket.telemetry?.TempAndHumidity?.temp || 0} max={120} stepSize={20} intermediateTicks={1} unit="°C" demo={false}
+
+                <Gauge
+                    value={activeCar.TempAndHumidity?.temp || 0} max={120} stepSize={20} intermediateTicks={1} unit="°C" demo={false}
                     ranges={[
                         { min: 0, max: 100, colorClass: 'text-emerald-400' },
                         { min: 101, max: 120, colorClass: 'text-red-500' }
@@ -97,20 +101,20 @@
     <div>
         <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Dynamics & Position</h2>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            
+
             <div class="col-span-1">
                 <GMeter
                     maxG={3}
-                    x={globalSocket.telemetry?.Accelerometer?.acceleration?.[0] || 0}
-                    y={globalSocket.telemetry?.Accelerometer?.acceleration?.[1] || 0}
+                    x={activeCar.Accelerometer?.acceleration?.[0] || 0}
+                    y={activeCar.Accelerometer?.acceleration?.[1] || 0}
                 />
             </div>
-            
+
             <div class="col-span-1 lg:col-span-2">
                 <TrackWidget demo={true} />
             </div>
             <div class="col-span-1">
-                <RollPitchCard roll={globalSocket.telemetry?.Accelerometer?.roll || 0} pitch={globalSocket.telemetry?.Accelerometer?.pitch || 0}></RollPitchCard>
+                <RollPitchCard roll={activeCar.Accelerometer?.roll || 0} pitch={activeCar.Accelerometer?.pitch || 0}></RollPitchCard>
             </div>
         </div>
     </div>
@@ -120,9 +124,9 @@
         <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-lg">
             <TireSet
                 layerCount={2}
-                surfaceTemp={globalSocket.telemetry?.TempAndHumidity?.temp || { FL: 0, FR: 0, RL: 0, RR: 0 }}
-                pressure={globalSocket.telemetry?.PressureAndAltitude?.pressure || { FL: 0, FR: 0, RL: 0, RR: 0 }}
-                speed={globalSocket.telemetry?.Speed || { FL: 0, FR: 0, RL: 0, RR: 0 }}
+                surfaceTemp={activeCar.TempAndHumidity?.temp || { FL: 0, FR: 0, RL: 0, RR: 0 }}
+                pressure={activeCar.PressureAndAltitude?.pressure || { FL: 0, FR: 0, RL: 0, RR: 0 }}
+                speed={activeCar.Speed || { FL: 0, FR: 0, RL: 0, RR: 0 }}
             />
         </div>
     </div>
