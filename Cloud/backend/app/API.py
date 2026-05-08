@@ -189,3 +189,52 @@ async def get_all_sessions(db_session: AsyncSession = Depends(get_session)):
         })
 
     return results
+
+
+@router.get("/api/analytics/{session_id}/{car_id}")
+async def get_analytics_data(session_id: int, car_id: int, db_session: AsyncSession = Depends(get_session)):
+    """
+    Fetches raw telemetry for a specific car and session, formatted for ECharts.
+    """
+    # Fetch all telemetry packets, ordered by time
+    stmt = (
+        select(TelemetryRaw)
+        .where(TelemetryRaw.session_id == session_id)
+        .where(TelemetryRaw.car_id == car_id)
+        .order_by(TelemetryRaw.id.asc())
+    )
+    result = await db_session.exec(stmt)
+    telemetry = result.all()
+
+    # Prepare our data arrays
+    data = {
+        "timestamps": [],
+        "traction_circle": [],  # [Lateral G (X), Longitudinal G (Y)]
+        "roll": [],
+        "pitch": [],
+        "temp": [],
+        "pressure": []
+    }
+
+    if not telemetry:
+        return data
+
+    # Use the first packet as "Time 0.0s"
+    start_time = telemetry[0].received_at
+
+    for t in telemetry:
+        relative_time = (t.received_at - start_time).total_seconds()
+        data["timestamps"].append(round(relative_time, 2))
+
+        # Traction Circle: [accel_y (Lateral), accel_x (Longitudinal)]
+        lat_g = t.accel_y if t.accel_y is not None else 0
+        lon_g = t.accel_x if t.accel_x is not None else 0
+        data["traction_circle"].append([round(lat_g, 2), round(lon_g, 2)])
+
+        data["roll"].append(round(t.accel_roll, 2) if t.accel_roll else 0)
+        data["pitch"].append(round(t.accel_pitch, 2) if t.accel_pitch else 0)
+
+        data["temp"].append(round(t.temp_surface, 1) if t.temp_surface else 0)
+        data["pressure"].append(round(t.pressure, 2) if t.pressure else 0)
+
+    return data
