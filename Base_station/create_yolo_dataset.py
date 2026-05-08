@@ -7,8 +7,8 @@ import shutil
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-JSON_DIR = 'output_keypoints/keypoints'
-IMAGE_DIR = 'output_keypoints/rgb'
+JSON_DIR = 'car_detection/output_keypoints/keypoints'
+IMAGE_DIR = 'car_detection/output_keypoints/rgb'
 DATASET_DIR = 'Dataset'
 
 IMAGE_WIDTH = 800.0
