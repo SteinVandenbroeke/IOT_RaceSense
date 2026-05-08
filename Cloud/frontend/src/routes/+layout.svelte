@@ -11,7 +11,7 @@
 	const closeMenu = () => (isMenuOpen = false);
 
 	onMount(() => {
-		globalSocket.loadDemoFleet(); // REMOVE this when you have the real board!
+		// globalSocket.loadDemoFleet(); // REMOVE this when you have the real board!
 		globalSocket.connect();
 	});
 

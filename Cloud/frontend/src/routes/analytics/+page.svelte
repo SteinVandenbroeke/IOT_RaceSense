@@ -1,190 +1,194 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import * as echarts from 'echarts';
 
-	// --- GLOBAL STATE ---
-	let xAxisMode: 'distance' | 'time' = $state('distance');
+	// Grab URL Parameters
+	let sessionId = $derived($page.url.searchParams.get('session'));
+	let carId = $derived($page.url.searchParams.get('car'));
 
-	// --- MOCK DATA ---
-	// X-Axes
-	const distanceData = Array.from({ length: 50 }, (_, i) => i * 20); // 0 to 980 meters
-	const timeData = Array.from({ length: 50 }, (_, i) => +(i * 0.4).toFixed(1)); // 0 to 19.6 seconds
+	let isLoading = $state(true);
+	let error = $state<string | null>(null);
+	let telemetryData = $state<any>(null);
 
-	// Y-Axes: Speed
-	const bestLapSpeed = [100, 120, 150, 180, 210, 225, 230, 220, 150, 90, 85, 95, 120, 160, 190, 210, 230, 245, 250, 255, 250, 200, 120, 80, 75, 80, 100, 130, 170, 200, 220, 240, 260, 270, 275, 270, 250, 180, 110, 90, 85, 100, 140, 180, 210, 230, 240, 250, 255, 260];
-	const currentLapSpeed = [95, 115, 145, 170, 190, 210, 215, 205, 130, 85, 80, 90, 115, 150, 185, 200, 220, 235, 240, 245, 235, 180, 110, 85, 75, 85, 105, 140, 175, 205, 225, 245, 265, 275, 280, 275, 255, 190, 120, 95, 85, 95, 135, 175, 205, 225, 235, 245, 250, 255];
+	onMount(async () => {
+		if (!sessionId || !carId) {
+			error = "Please select a session and car from the Overview page.";
+			isLoading = false;
+			return;
+		}
 
-	// Y-Axes: Tires
-	const flTemp = [85, 85, 86, 86, 87, 88, 89, 92, 105, 112, 110, 105, 100, 98, 97, 97, 98, 99, 100, 101, 102, 108, 115, 118, 116, 112, 108, 105, 103, 102, 102, 103, 104, 105, 106, 107, 109, 115, 120, 122, 120, 115, 110, 108, 106, 105, 105, 106, 107, 108];
-	const flPressure = [1.60, 1.60, 1.60, 1.61, 1.61, 1.62, 1.62, 1.63, 1.65, 1.68, 1.69, 1.68, 1.67, 1.66, 1.66, 1.66, 1.67, 1.67, 1.68, 1.69, 1.70, 1.72, 1.75, 1.78, 1.79, 1.78, 1.76, 1.75, 1.74, 1.74, 1.74, 1.75, 1.76, 1.77, 1.78, 1.79, 1.80, 1.83, 1.86, 1.88, 1.88, 1.87, 1.85, 1.84, 1.83, 1.82, 1.82, 1.83, 1.84, 1.85];
+		try {
+			const res = await fetch(`/api/analytics/${sessionId}/${carId}`);
+			if (!res.ok) throw new Error("Failed to fetch analytics data");
+			telemetryData = await res.json();
+		} catch (err: any) {
+			error = err.message;
+		} finally {
+			isLoading = false;
+		}
+	});
 
-	// --- CHART ACTIONS ---
-	// Using Svelte actions so we can surgically update the chart when xAxisMode changes
-	function initSpeedChart(node: HTMLElement, mode: 'distance' | 'time') {
+	// --- CHART 1: TRACTION CIRCLE (Scatter) ---
+	function initTractionCircle(node: HTMLElement) {
 		const chart = echarts.init(node);
-		
-		const getBaseOption = () => ({
-			backgroundColor: 'transparent',
-			tooltip: { trigger: 'axis', backgroundColor: 'rgba(24, 24, 27, 0.9)', borderColor: '#3f3f46', textStyle: { color: '#e4e4e7' } },
-			legend: { data: ['Lap 12 (Best)', 'Lap 14 (Current)'], textStyle: { color: '#a1a1aa' }, top: 0 },
-			grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
-			xAxis: { 
-				type: 'category', 
-				boundaryGap: false, 
-				axisLabel: { color: '#71717a' }, 
-				splitLine: { show: true, lineStyle: { color: '#27272a', type: 'dashed' } },
-				nameLocation: 'middle',
-				nameGap: 30,
-				nameTextStyle: { color: '#a1a1aa', fontWeight: 'bold' }
-			},
-			yAxis: { type: 'value', name: 'Speed (km/h)', axisLabel: { color: '#71717a' }, splitLine: { show: true, lineStyle: { color: '#27272a' } } },
-			series: [
-				{ name: 'Lap 12 (Best)', type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 3, color: '#34d399' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(52, 211, 153, 0.3)' }, { offset: 1, color: 'rgba(52, 211, 153, 0)' }]) }, data: bestLapSpeed },
-				{ name: 'Lap 14 (Current)', type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#71717a', type: 'dashed' }, data: currentLapSpeed }
-			]
-		});
-
-		chart.setOption(getBaseOption());
-
-		// Initial set
 		chart.setOption({
-			xAxis: { data: mode === 'distance' ? distanceData : timeData, name: mode === 'distance' ? 'Distance (m)' : 'Time (s)' }
-		});
-
-		window.addEventListener('resize', () => chart.resize());
-
-		return {
-			// This runs whenever xAxisMode changes!
-			update(newMode: 'distance' | 'time') {
-				chart.setOption({
-					xAxis: { data: newMode === 'distance' ? distanceData : timeData, name: newMode === 'distance' ? 'Distance (m)' : 'Time (s)' }
-				});
+			backgroundColor: 'transparent',
+			tooltip: { formatter: 'Lat: {c0}G<br />Lon: {c1}G', backgroundColor: 'rgba(24,24,27,0.9)', textStyle: { color: '#e4e4e7' } },
+			grid: { left: '10%', right: '10%', bottom: '10%', top: '10%', containLabel: true },
+			xAxis: {
+				type: 'value', name: 'Lateral G', nameLocation: 'middle', nameGap: 25,
+				min: -3, max: 3, splitLine: { lineStyle: { color: '#27272a' } }, axisLabel: { color: '#71717a' }
 			},
-			destroy() { chart.dispose(); }
-		};
+			yAxis: {
+				type: 'value', name: 'Longitudinal G', nameLocation: 'middle', nameGap: 35,
+				min: -3, max: 3, splitLine: { lineStyle: { color: '#27272a' } }, axisLabel: { color: '#71717a' }
+			},
+			series: [{
+				type: 'scatter',
+				symbolSize: 6,
+				itemStyle: { color: '#34d399', opacity: 0.6 },
+				data: telemetryData.traction_circle
+			}]
+		});
+		window.addEventListener('resize', () => chart.resize());
+		return { destroy() { chart.dispose(); } };
 	}
 
-	function initTireChart(node: HTMLElement, mode: 'distance' | 'time') {
+	// --- CHART 2: CHASSIS DYNAMICS (Line) ---
+	function initChassisDynamics(node: HTMLElement) {
 		const chart = echarts.init(node);
-		
-		const getBaseOption = () => ({
+		chart.setOption({
 			backgroundColor: 'transparent',
-			tooltip: { trigger: 'axis', backgroundColor: 'rgba(24, 24, 27, 0.9)', borderColor: '#3f3f46', textStyle: { color: '#e4e4e7' } },
-			legend: { data: ['Temperature (°C)', 'Pressure (bar)'], textStyle: { color: '#a1a1aa' }, top: 0 },
-			grid: { left: '3%', right: '3%', bottom: '10%', containLabel: true },
-			xAxis: { 
-				type: 'category', 
-				boundaryGap: false, 
-				axisLabel: { color: '#71717a' },
-				nameLocation: 'middle',
-				nameGap: 30,
-				nameTextStyle: { color: '#a1a1aa', fontWeight: 'bold' }
-			},
-			yAxis: [
-				{ type: 'value', name: 'Temp (°C)', min: 80, max: 130, axisLabel: { color: '#ef4444' }, nameTextStyle: { color: '#ef4444' }, splitLine: { show: true, lineStyle: { color: '#27272a' } } },
-				{ type: 'value', name: 'Pressure (bar)', min: 1.5, max: 2.0, axisLabel: { color: '#3b82f6' }, nameTextStyle: { color: '#3b82f6' }, splitLine: { show: false } }
-			],
+			tooltip: { trigger: 'axis', backgroundColor: 'rgba(24,24,27,0.9)', textStyle: { color: '#e4e4e7' } },
+			legend: { data: ['Roll (deg)', 'Pitch (deg)'], textStyle: { color: '#a1a1aa' } },
+			grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+			xAxis: { type: 'category', boundaryGap: false, data: telemetryData.timestamps, axisLabel: { color: '#71717a' }, name: 'Time (s)', nameLocation: 'middle', nameGap: 25 },
+			yAxis: { type: 'value', name: 'Degrees', axisLabel: { color: '#71717a' }, splitLine: { lineStyle: { color: '#27272a' } } },
 			series: [
-				{ name: 'Temperature (°C)', type: 'line', yAxisIndex: 0, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#ef4444' }, data: flTemp },
-				{ name: 'Pressure (bar)', type: 'line', yAxisIndex: 1, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#3b82f6', type: 'dotted' }, data: flPressure }
+				{ name: 'Roll (deg)', type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#3b82f6' }, data: telemetryData.roll },
+				{ name: 'Pitch (deg)', type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#f59e0b' }, data: telemetryData.pitch }
 			]
 		});
-
-		chart.setOption(getBaseOption());
-		chart.setOption({
-			xAxis: { data: mode === 'distance' ? distanceData : timeData, name: mode === 'distance' ? 'Distance (m)' : 'Time (s)' }
-		});
-
 		window.addEventListener('resize', () => chart.resize());
+		return { destroy() { chart.dispose(); } };
+	}
 
-		return {
-			update(newMode: 'distance' | 'time') {
-				chart.setOption({
-					xAxis: { data: newMode === 'distance' ? distanceData : timeData, name: newMode === 'distance' ? 'Distance (m)' : 'Time (s)' }
-				});
+	// --- CHART 3: TIRE THERMODYNAMICS (Line) ---
+	function initTireThermodynamics(node: HTMLElement) {
+		const chart = echarts.init(node);
+		chart.setOption({
+			backgroundColor: 'transparent',
+			tooltip: { trigger: 'axis', backgroundColor: 'rgba(24,24,27,0.9)', textStyle: { color: '#e4e4e7' } },
+			legend: { data: ['Surface Temp (°C)', 'Pressure (bar)'], textStyle: { color: '#a1a1aa' } },
+			grid: { left: '3%', right: '3%', bottom: '10%', containLabel: true },
+			xAxis: { type: 'category', boundaryGap: false, data: telemetryData.timestamps, axisLabel: { color: '#71717a' }, name: 'Time (s)', nameLocation: 'middle', nameGap: 25 },
+			yAxis: [
+				{ type: 'value', name: 'Temp (°C)', axisLabel: { color: '#ef4444' }, splitLine: { lineStyle: { color: '#27272a' } } },
+				{ type: 'value', name: 'Pressure (bar)', axisLabel: { color: '#34d399' }, splitLine: { show: false } }
+			],
+			series: [
+				{ name: 'Surface Temp (°C)', type: 'line', yAxisIndex: 0, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#ef4444' }, data: telemetryData.temp },
+				{ name: 'Pressure (bar)', type: 'line', yAxisIndex: 1, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#34d399', type: 'dotted' }, data: telemetryData.pressure }
+			]
+		});
+		window.addEventListener('resize', () => chart.resize());
+		return { destroy() { chart.dispose(); } };
+	}
+
+	// --- CHART 4: SUSPENSION HARSHNESS (Vertical G) ---
+	function initSuspensionHarshness(node: HTMLElement) {
+		const chart = echarts.init(node);
+		chart.setOption({
+			backgroundColor: 'transparent',
+			tooltip: { trigger: 'axis', backgroundColor: 'rgba(24,24,27,0.9)', textStyle: { color: '#e4e4e7' } },
+			grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+			xAxis: { type: 'category', boundaryGap: false, data: telemetryData.timestamps, axisLabel: { color: '#71717a' }, name: 'Time (s)', nameLocation: 'middle', nameGap: 25 },
+			yAxis: { type: 'value', name: 'Vertical G (Z-Axis)', axisLabel: { color: '#71717a' }, splitLine: { lineStyle: { color: '#27272a' } } },
+
+			// This automatically turns the line RED when it exceeds safe limits!
+			visualMap: {
+				top: 0, right: 0,
+				pieces: [
+					{ gt: 1.5, color: '#ef4444' },          // Red for harsh positive (bump)
+					{ lt: -1.5, color: '#ef4444' },         // Red for harsh negative (bottom out)
+					{ gte: -1.5, lte: 1.5, color: '#3b82f6' } // Blue for normal driving
+				],
+				outOfRange: { color: '#999' },
+				textStyle: { color: '#a1a1aa' }
 			},
-			destroy() { chart.dispose(); }
-		};
+			series: [
+				{
+					name: 'Vertical G',
+					type: 'line',
+					data: telemetryData.vertical_g,
+					markLine: {
+						silent: true,
+						lineStyle: { color: '#ef4444', type: 'dashed', opacity: 0.5 },
+						data: [{ yAxis: 1.5, name: 'Bump Limit' }, { yAxis: -1.5, name: 'Drop Limit' }]
+					}
+				}
+			]
+		});
+		window.addEventListener('resize', () => chart.resize());
+		return { destroy() { chart.dispose(); } };
 	}
 </script>
 
-<section aria-labelledby="analytics-heading" class="max-w-7xl mx-auto space-y-8">
-	
-	<header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-zinc-800 pb-6">
+<section class="max-w-7xl mx-auto space-y-8 p-4 sm:p-6 lg:p-8">
+	<header class="flex justify-between items-end border-b border-zinc-800 pb-6">
 		<div>
-			<h1 id="analytics-heading" class="text-3xl font-black text-white tracking-tight">Telemetry Analytics</h1>
-			<p class="text-zinc-400 text-sm mt-1">Session: SESS-089 | Spa-Francorchamps</p>
+			<h1 class="text-3xl font-black text-white tracking-tight">Lap Analytics</h1>
+			<p class="text-zinc-400 text-sm mt-1">
+				{#if sessionId && carId}
+					Session: #{sessionId} | Vehicle: #{carId.toString().padStart(2, '0')}
+				{:else}
+					Select a vehicle to view analytics.
+				{/if}
+			</p>
 		</div>
-		
-		<div class="flex items-center gap-4">
-			<div class="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800 shadow-inner">
-				<button 
-					class="px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all duration-200 {xAxisMode === 'distance' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}"
-					onclick={() => xAxisMode = 'distance'}
-				>
-					Distance
-				</button>
-				<button 
-					class="px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all duration-200 {xAxisMode === 'time' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}"
-					onclick={() => xAxisMode = 'time'}
-				>
-					Time
-				</button>
-			</div>
-
-			<button class="bg-zinc-100 hover:bg-white text-zinc-950 px-4 py-2 rounded-md text-sm font-bold transition-colors">
-				Export CSV
-			</button>
-		</div>
+		<a href="/" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold uppercase rounded transition-colors">
+			&larr; Back to Fleet
+		</a>
 	</header>
 
-	<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 shadow-lg">
-		<h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6">Speed Trace Comparison</h2>
-		
-		<div class="w-full h-[350px]" use:initSpeedChart={xAxisMode}></div>
+	{#if isLoading}
+		<div class="flex justify-center py-20 text-emerald-500"><svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.414-5.657l-1.414 1.414M7.414 17.657l-1.414 1.414m0-11.314l1.414 1.414m11.314 11.314l-1.414-1.414"></path></svg></div>
+	{:else if error}
+		<div class="p-6 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-center">{error}</div>
+	{:else if telemetryData && telemetryData.timestamps.length > 0}
 
-		<div class="mt-6 p-4 bg-zinc-950 rounded-lg border border-zinc-800 flex items-start gap-4">
-			<div class="p-2 bg-emerald-500/20 text-emerald-400 rounded-full mt-1">
-				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+			<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 shadow-lg">
+				<h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Traction Circle (G-Force)</h2>
+				<p class="text-[10px] text-zinc-400 mb-4">Lateral vs Longitudinal Acceleration Grip Utilization.</p>
+				<div class="w-full h-[400px]" use:initTractionCircle></div>
 			</div>
-			<div>
-				<h3 class="text-sm font-bold text-white">Speed Analysis</h3>
-				<p class="text-sm text-zinc-400 mt-1 leading-relaxed">
-					In the current lap, braking for Turn 1 occurred <span class="text-red-400 font-bold">earlier</span> than the best lap. 
-					{#if xAxisMode === 'distance'}
-						Visually, this is evident around the <span class="text-zinc-200 font-mono">180m</span> mark where the dashed line drops prematurely, resulting in a 0.2s deficit on corner exit.
-					{:else}
-						Notice how at <span class="text-zinc-200 font-mono">3.6s</span> the dashed line is significantly lower, showing the time lost from early deceleration.
-					{/if}
-				</p>
+
+			<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 shadow-lg">
+				<h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Tire Thermodynamics</h2>
+				<p class="text-[10px] text-zinc-400 mb-4">Correlation between surface temperature and casing pressure over time.</p>
+				<div class="w-full h-[400px]" use:initTireThermodynamics></div>
 			</div>
 		</div>
-	</div>
 
-	<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-		<div class="col-span-1 lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 shadow-lg">
-			<div class="flex justify-between items-center mb-6">
-				<h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest">Tire Thermodynamics (Front Left)</h2>
-				<span class="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded uppercase tracking-wider border border-blue-500/20">Simulated MVP Data</span>
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+			<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 shadow-lg">
+				<h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Chassis Dynamics</h2>
+				<p class="text-[10px] text-zinc-400 mb-4">Body roll and pitch degrees throughout the session.</p>
+				<div class="w-full h-[350px]" use:initChassisDynamics></div>
 			</div>
-			
-			<div class="w-full h-[300px]" use:initTireChart={xAxisMode}></div>
-		</div>
 
-		<div class="col-span-1 bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-lg flex flex-col">
-			<h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Correlation Analysis</h2>
-			<p class="text-sm text-zinc-300 leading-relaxed mb-6">
-				By analyzing temperature and pressure together, we can observe the thermal expansion of the air inside the tire casing. 
-			</p>
-			<div class="space-y-4 flex-1">
-				<div class="p-3 bg-zinc-950 rounded-lg border border-zinc-800 border-l-4 border-l-red-500">
-					<h3 class="text-xs font-bold text-white uppercase mb-1">Heavy Braking Zones</h3>
-					<p class="text-xs text-zinc-400">Rapid deceleration causes friction, spiking the surface temperature over 115°C.</p>
-				</div>
-				<div class="p-3 bg-zinc-950 rounded-lg border border-zinc-800 border-l-4 border-l-blue-500">
-					<h3 class="text-xs font-bold text-white uppercase mb-1">Pressure Lag</h3>
-					<p class="text-xs text-zinc-400">Pressure increases steadily behind the temperature spikes, peaking at 1.88 bar, which could lead to a loss of grip.</p>
-				</div>
+			<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 shadow-lg">
+				<h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Suspension & Kerb Strikes</h2>
+				<p class="text-[10px] text-zinc-400 mb-4">Vertical G-Force (Z-Axis). Values exceeding ±1.5G indicate harsh impacts or bottoming out.</p>
+				<div class="w-full h-[350px]" use:initSuspensionHarshness></div>
 			</div>
 		</div>
-	</div>
+
+	{:else}
+		<div class="text-center py-12 border border-zinc-800 border-dashed rounded-xl text-zinc-500 font-mono">
+			No telemetry data found for this car in this session.
+		</div>
+	{/if}
 </section>
