@@ -34,7 +34,7 @@
 	}
 </script>
 
-<section aria-labelledby="overview-heading" class="max-w-5xl mx-auto space-y-8">
+<section aria-labelledby="overview-heading" class="w-full mx-auto space-y-8">
 	<header>
 		<h1 id="overview-heading" class="text-3xl font-black text-white tracking-tight">Session Fleet</h1>
 		<p class="text-zinc-400 text-sm mt-1">Select an active car to follow live, or analyze past telemetry.</p>
