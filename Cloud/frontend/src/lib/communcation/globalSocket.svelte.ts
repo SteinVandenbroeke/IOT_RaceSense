@@ -48,6 +48,8 @@ class GlobalSocket {
 	// 2. The Selector: Which car is the dashboard currently looking at?
 	selectedCarId = $state<number>(0);
 
+	trackFlag = $state<'Green' | 'Yellow' | 'Red'>('Green');
+
 	// 3. The Magic Getter: The existing UI reads this, completely unaware
 	// that it's dynamically switching between different cars in the garage!
 	get telemetry(): CarTelemetry {
@@ -81,6 +83,12 @@ class GlobalSocket {
 		this.selectedCarId = 4;
 	}
 
+	setTrackFlag(color: 'Green' | 'Yellow' | 'Red') {
+		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+			this.socket.send(JSON.stringify({ type: 'flag_change', color: color }));
+		}
+	}
+
 	connect() {
 		if (typeof window === 'undefined') return;
 		if (this.socket?.readyState === WebSocket.OPEN) return;
@@ -94,24 +102,32 @@ class GlobalSocket {
 
 		this.socket.onmessage = (event) => {
 			try {
-				const rawMessage: IncomingPayload = JSON.parse(event.data);
+				const rawMessage = JSON.parse(event.data);
+
+				// 1. Check if this is a Race Control Command
+				if (rawMessage.type === 'flag_change') {
+					this.trackFlag = rawMessage.color;
+					return; // Stop processing, this isn't telemetry
+				}
+
+				// 2. Check if the Pycom hardware reported a crash/flag
 				const pv = rawMessage.processed_value;
-
 				if (pv) {
-					// Extract the CarId (default to 0 if missing)
-					const incomingCarId = pv.CarId ?? 0;
+					// If your Pycom sends a flag status like: {"track_flag": "Yellow"}
+					if (pv.track_flag) {
+						this.trackFlag = pv.track_flag;
+					}
 
-					// Update ONLY that specific car's data in the garage
+					const incomingCarId = pv.CarId ?? 0;
 					this.cars[incomingCarId] = {
 						...this.cars[incomingCarId],
 						...pv
 					};
 				}
 			} catch (error) {
-				console.error('Failed to parse sensor data:', error);
+				console.error('Failed to parse socket data:', error);
 			}
 		};
-
 		this.socket.onclose = () => {
 			this.isConnected = false;
 			this.scheduleReconnect();

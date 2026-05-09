@@ -15,6 +15,7 @@ router = APIRouter()
 class ConnectionManager:
     def __init__(self):
         self.active_ui_connections: list[WebSocket] = []
+        self.active_coral_connections: list[WebSocket] = []  # Track Coral boards!
 
     async def connect_ui(self, websocket: WebSocket):
         await websocket.accept()
@@ -24,8 +25,23 @@ class ConnectionManager:
         if websocket in self.active_ui_connections:
             self.active_ui_connections.remove(websocket)
 
+    async def connect_coral(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_coral_connections.append(websocket)
+
+    def disconnect_coral(self, websocket: WebSocket):
+        if websocket in self.active_coral_connections:
+            self.active_coral_connections.remove(websocket)
+
     async def broadcast_to_ui(self, message: str):
         for connection in self.active_ui_connections:
+            try:
+                await connection.send_text(message)
+            except Exception:
+                pass
+
+    async def broadcast_to_coral(self, message: str):
+        for connection in self.active_coral_connections:
             try:
                 await connection.send_text(message)
             except Exception:
@@ -49,19 +65,31 @@ def pycom_rtc_to_iso(rtc_array):
     return rtc_array
 
 
+# --- THE UI WEBSOCKET ---
 @router.websocket("/ws/ui")
 async def websocket_ui_endpoint(websocket: WebSocket):
     await manager.connect_ui(websocket)
     try:
         while True:
-            await websocket.receive_text()
+            # Listen for commands from the web dashboard
+            data_text = await websocket.receive_text()
+            payload = json.loads(data_text)
+
+            # If the Race Controller changes the flag, broadcast it to EVERYONE
+            if payload.get("type") == "flag_change":
+                command_json = json.dumps(payload)
+                await manager.broadcast_to_ui(command_json)  # Update all other web users
+                await manager.broadcast_to_coral(command_json)  # Send down to the hardware
+                print(f"Race Control issued flag: {payload.get('color')}")
+
     except WebSocketDisconnect:
         manager.disconnect_ui(websocket)
 
 
+# --- THE CORAL WEBSOCKET ---
 @router.websocket("/ws/coral")
 async def websocket_coral_endpoint(websocket: WebSocket):
-    await websocket.accept()
+    await manager.connect_coral(websocket)  # Register the Coral board!
 
     try:
         while True:
@@ -137,10 +165,10 @@ async def websocket_coral_endpoint(websocket: WebSocket):
             await manager.broadcast_to_ui(json.dumps(payload))
 
     except WebSocketDisconnect:
+        manager.disconnect_coral(websocket)
         print("Coral Dev Board disconnected.")
     except Exception as e:
         print(f"Error processing message: {e}")
-
 
 @router.get("/api/sessions")
 async def get_all_sessions(db_session: AsyncSession = Depends(get_session)):
