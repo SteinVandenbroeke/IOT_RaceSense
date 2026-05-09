@@ -6,8 +6,8 @@ from flask import Flask, Response
 app = Flask(__name__)
 
 # Pre-load the model globally
-MODEL_PATH = 'best_edgetpu.tflite'
-# MODEL_PATH = '../../runs/pose/run_12/weights/best.pt'
+# MODEL_PATH = 'best_edgetpu.tflite'
+MODEL_PATH = '../../runs/pose/carla_yolo_dataset/run_1-2/weights/best.pt'
 print(f"Loading Coral-optimized model: {MODEL_PATH}")
 model = YOLO(MODEL_PATH, task='pose')
 
@@ -23,7 +23,7 @@ def serve_inference_image():
 
     # 2. Run inference
     # We pass the image directly to the model
-    results = model(image)
+    results = model(image, imgsz=320, conf=0.1)
 
     # 3. Process results and draw manually
     for result in results:
