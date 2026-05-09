@@ -5,7 +5,7 @@ from ultralytics import YOLO
 
 def main():
     # Load your fine-tuned model from the training run
-    model_path = '../../runs/pose/carla_models/run_1-2/weights/best.pt'
+    model_path = '../../runs/pose/run_12/weights/best.pt'
     print(f"Loading trained model from {model_path}...")
     model = YOLO(model_path)
 
@@ -13,7 +13,7 @@ def main():
     # By passing the 'data' argument, YOLO automatically grabs images
     # from your dataset to calibrate the INT8 quantization (replacing your representative_data_gen)
     print("Exporting and compiling for Coral Edge TPU...")
-    model.export(format='edgetpu', imgsz=320, int8=True, data='carla_pose.yaml', fraction=0.1)
+    model.export(format='edgetpu', imgsz=320, data='carla_pose.yaml')
 
     print("Export complete! You will find the _edgetpu.tflite file in the same folder as your weights.")
 

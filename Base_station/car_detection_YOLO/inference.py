@@ -1,60 +1,43 @@
 import cv2
 from ultralytics import YOLO
+from flask import Flask, Response
+
+# Initialize the web app
+app = Flask(__name__)
+
+# Pre-load the model globally so we don't reload it every time you refresh the page
+MODEL_PATH = 'best_edgetpu.tflite'
+print(f"Loading Coral-optimized model: {MODEL_PATH}")
+model = YOLO(MODEL_PATH, task='pose')
 
 
-def main():
-    # 1. Load the model
-    # You can test with your PC model ('best.pt') or the Coral model ('best_edgetpu.tflite')
-    model_path = '../../runs/best_int8.tflite'
-    image_path = '../test_images/Angled_Street_ClearNoon_mkz_2020_BWD_2664.png'  # Replace with your image
+@app.route('/')
+def serve_inference_image():
+    """This function runs whenever you visit http://192.168.100.2:4664/"""
 
-    print(f"Loading model: {model_path}")
-    model = YOLO(model_path)
+    image_path = '../test_images/Angled_Street_ClearNoon_mkz_2020_BWD_2664.png'
+    print(f"Running inference and serving to browser...")
 
-    # 2. Run Inference
-    # YOLO automatically resizes the image, scales the points, and handles the math
-    print(f"Running inference on: {image_path}")
+    # 1. Run Inference
     results = model(image_path)
-
-    # Grab the first result (since we only passed one image)
     result = results[0]
 
-    # ==========================================
-    # METHOD A: Let YOLO draw and show the image
-    # ==========================================
-    print("Opening visualization window... (Press any key to close)")
-    result.show()  # This pops open a window with the box and all 8 points drawn
+    # 2. Get the annotated image
+    # YOLO's .plot() method automatically draws the keypoints/boxes
+    # and returns a clean Numpy array, saving us from writing OpenCV drawing math!
+    annotated_image = result.plot()
 
-    # ==========================================
-    # METHOD B: Extract the raw data for your track math
-    # ==========================================
-    print("\n--- Raw Data Extraction ---")
+    # 3. Encode the image into JPEG format so a web browser can read it
+    success, encoded_image = cv2.imencode('.jpg', annotated_image)
+    if not success:
+        return "Failed to encode image", 500
 
-    # Check if any cars were detected
-    if len(result.boxes) == 0:
-        print("No cars detected in this image.")
-        return
-
-    # Loop through every detected car (in case there is more than 1)
-    for i, box in enumerate(result.boxes):
-        print(f"\nCar #{i + 1}:")
-
-        # Get bounding box coordinates (Top-Left and Bottom-Right)
-        x1, y1, x2, y2 = box.xyxy[0].tolist()
-        print(f"  Bounding Box: Top-Left({int(x1)}, {int(y1)}) to Bottom-Right({int(x2)}, {int(y2)})")
-        print(f"  Confidence: {box.conf[0]:.2f}")
-
-        # Extract the 8 keypoints for this specific car
-        # .xy returns a tensor of shape [1, 8, 2] (1 car, 8 points, X/Y pairs)
-        keypoints = result.keypoints.xy[i].tolist()
-
-        for kpt_index, (x, y) in enumerate(keypoints):
-            # If x and y are 0, the model thinks the point is hidden/occluded
-            if x == 0 and y == 0:
-                print(f"  Point {kpt_index + 1}: Not visible")
-            else:
-                print(f"  Point {kpt_index + 1}: X={int(x)}, Y={int(y)}")
+    # 4. Send the image bytes to the web browser
+    return Response(encoded_image.tobytes(), mimetype='image/jpeg')
 
 
 if __name__ == "__main__":
-    main()
+    # Host the server on all network interfaces (0.0.0.0) on port 4664
+    print("\nStarting Web Server...")
+    print("Open your PC's browser and go to: http://192.168.100.2:4664/")
+    app.run(host='0.0.0.0', port=4664, debug=False)
