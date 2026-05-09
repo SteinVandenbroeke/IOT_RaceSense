@@ -6,7 +6,7 @@ from flask import Flask, Response
 app = Flask(__name__)
 
 # Pre-load the model globally
-MODEL_PATH = '../../runs/pose/best_edgetpu.tflite'
+MODEL_PATH = 'best_edgetpu.tflite'
 print(f"Loading Coral-optimized model: {MODEL_PATH}")
 model = YOLO(MODEL_PATH, task='pose')
 
