@@ -4,7 +4,7 @@ from flask import Flask, Response
 
 app = Flask(__name__)
 
-MODEL_PATH = 'best_edgetpu.tflite'
+MODEL_PATH = 'best_float32.tflite'
 model = YOLO(MODEL_PATH, task='pose')
 
 
