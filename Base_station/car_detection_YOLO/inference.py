@@ -10,7 +10,7 @@ MODEL_PATH = 'best_float32.tflite'
 # MODEL_PATH = '../../runs/pose/carla_yolo_dataset/run_1-2/weights/best.pt'
 print(f"Loading Coral-optimized model: {MODEL_PATH}")
 model = YOLO(MODEL_PATH, task='pose')
-
+print(f"Model is using: {model.device}")
 
 @app.route('/')
 def serve_inference_image():
