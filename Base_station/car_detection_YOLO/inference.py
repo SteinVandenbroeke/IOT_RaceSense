@@ -13,7 +13,6 @@ print(f"Loading Coral-optimized model: {MODEL_PATH}")
 # Ultralytics automatically handles the TFLite scale/zero-point conversions
 model = YOLO(MODEL_PATH, task='pose')
 
-model.names = {0: 'car'}
 model.model.names = {0: 'car'}
 model.model.kpt_shape = [8, 3]
 @app.route('/')
