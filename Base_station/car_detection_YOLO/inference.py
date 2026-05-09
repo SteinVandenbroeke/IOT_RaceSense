@@ -26,7 +26,7 @@ except Exception:
 # --- THE METADATA INJECTION ---
 # 3. Now that the backend actually exists, we can inject our data directly into it!
 model.predictor.model.names = {0: 'car'}
-model.predictor.model.kpt_shape = [17, 3]
+model.predictor.model.kpt_shape = [8, 3]
 print("Metadata successfully injected!")
 
 
