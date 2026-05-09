@@ -22,7 +22,7 @@ def serve_inference_image():
 
     # 2. Run Inference (passing the OpenCV image directly instead of the path)
     # Don't forget the imgsz=320 fix we just added!
-    results = model(image, imgsz=320)
+    results = model(image, imgsz=320, conf=0.1)
     result = results[0]
 
     # 3. Manually draw the keypoints as dots
@@ -53,5 +53,4 @@ def serve_inference_image():
 if __name__ == "__main__":
     # Using port 5000 to avoid the "Address already in use" error from earlier
     print("\nStarting Web Server...")
-    print("Open your PC's browser and go to: http://192.168.100.2:5000/")
     app.run(host='0.0.0.0', port=5000, debug=False)
