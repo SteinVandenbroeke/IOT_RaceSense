@@ -7,13 +7,14 @@ app = Flask(__name__)
 
 # Pre-load the model globally
 MODEL_PATH = 'best_edgetpu.tflite'
+# MODEL_PATH = '../../runs/pose/run_12/weights/best.pt'
 print(f"Loading Coral-optimized model: {MODEL_PATH}")
 model = YOLO(MODEL_PATH, task='pose')
 
 
 @app.route('/')
 def serve_inference_image():
-    image_path = '../test_images/42ab3ddc-0bcd-4b1a-bb85-9edb71d4e5c7.jpeg'
+    image_path = '../test_images/Angled_Street_ClearNoon_mkz_2020_BWD_2664.png'
     print(f"Running inference and serving to browser...")
 
     # 1. Read the image with OpenCV first so we have a canvas to draw on
