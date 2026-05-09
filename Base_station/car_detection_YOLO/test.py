@@ -4,7 +4,7 @@ import tflite_runtime.interpreter as tflite
 
 interpreter = tflite.Interpreter(
     model_path="best_edgetpu.tflite",
-    experimental_delegates=[tflite.load_delegate("libedgetpu.so.1")]
+    experimental_delegates=[tflite.load_delegate("/usr/lib/aarch64-linux-gnu/libedgetpu.so.1")]
 )
 interpreter.allocate_tensors()
 
