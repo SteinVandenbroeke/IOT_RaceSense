@@ -6,7 +6,7 @@ from flask import Flask, Response
 app = Flask(__name__)
 
 # Pre-load the model globally
-MODEL_PATH = 'best_int8.tflite'
+MODEL_PATH = 'best_float32_edgetpu.tflite'
 # MODEL_PATH = '../../runs/pose/run_12/weights/best.pt'
 print(f"Loading Coral-optimized model: {MODEL_PATH}")
 
