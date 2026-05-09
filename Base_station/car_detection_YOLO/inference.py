@@ -25,6 +25,11 @@ def serve_inference_image():
     results = model(image, imgsz=320, conf=0.1)
     result = results[0]
 
+    print(f"Cars detected: {len(result.boxes)}")
+    if result.keypoints is not None:
+        print(f"Raw Keypoint Array Shape: {result.keypoints.xy.shape}")
+        print(f"First car keypoints: {result.keypoints.xy[0].tolist()}")
+
     # 3. Manually draw the keypoints as dots
     # Check if the model actually detected any keypoints
     if result.keypoints is not None and len(result.keypoints) > 0:
