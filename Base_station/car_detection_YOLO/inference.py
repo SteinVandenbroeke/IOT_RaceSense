@@ -19,11 +19,14 @@ def serve_inference_image():
 
     # 1. Read the image with OpenCV first so we have a canvas to draw on
     image = cv2.imread(image_path)
+    h, w = image.shape[:2]
 
     # 2. Run Inference (passing the OpenCV image directly instead of the path)
     # Don't forget the imgsz=320 fix we just added!
     results = model(image, imgsz=320, conf=0.1)
     result = results[0]
+
+    print(f"Using device: {result.speed}")
 
     print(f"Cars detected: {len(result.boxes)}")
     if result.keypoints is not None:
@@ -33,18 +36,18 @@ def serve_inference_image():
     # 3. Manually draw the keypoints as dots
     # Check if the model actually detected any keypoints
     if result.keypoints is not None and len(result.keypoints) > 0:
-
-        # Loop through every detected car
         for i in range(len(result.keypoints)):
-            # Extract the points for this specific car
             keypoints = result.keypoints.xy[i].tolist()
 
             for (x, y) in keypoints:
-                # If x and y are not 0 (meaning the point is visible)
                 if x != 0 and y != 0:
-                    # Draw a solid green circle (radius 5)
-                    # Note: OpenCV colors are (Blue, Green, Red)
-                    cv2.circle(image, (int(x), int(y)), radius=5, color=(0, 255, 0), thickness=-1)
+                    # Scale from 320x320 model space to actual image space
+                    px = int(x * w / 320)
+                    py = int(y * h / 320)
+                    cv2.circle(image, (px, py), radius=5, color=(0, 255, 0), thickness=-1)
+
+    print(f"Input image size: {image.shape}")  # e.g. (720, 1280, 3)
+    print(f"Keypoint xy range: {result.keypoints.xy.min()}, {result.keypoints.xy.max()}")
 
     # 4. Encode the manually annotated image into JPEG format
     success, encoded_image = cv2.imencode('.jpg', image)
