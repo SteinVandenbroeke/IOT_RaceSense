@@ -15,7 +15,9 @@ def main():
         imgsz=320,
         data='carla_pose.yaml',
         int8=True,       # Force INT8 calibration explicitly
-        half=False       # Don't use FP16 as an intermediate step
+        half=False,       # Don't use FP16 as an intermediate step
+        simplify = True,
+        nms=False
     )
 
 if __name__ == '__main__':

@@ -6,8 +6,8 @@ from flask import Flask, Response
 app = Flask(__name__)
 
 # Pre-load the model globally
-MODEL_PATH = 'best_edgetpu.tflite'
-# MODEL_PATH = '../../runs/pose/run_12/weights/best.pt'
+# MODEL_PATH = 'best_edgetpu.tflite'
+MODEL_PATH = '../../runs/pose/run_12/weights/best.pt'
 print(f"Loading Coral-optimized model: {MODEL_PATH}")
 model = YOLO(MODEL_PATH, task='pose')
 
@@ -28,7 +28,7 @@ def serve_inference_image():
     print(f"Cars detected: {len(result.boxes)}")
     if result.keypoints is not None:
         print(f"Raw Keypoint Array Shape: {result.keypoints.xy.shape}")
-        print(f"First car keypoints: {result.keypoints.xy[0].tolist()}")
+        print(f"First car keypoints: {result.keypoints.data[0].tolist()}")
 
     # 3. Manually draw the keypoints as dots
     # Check if the model actually detected any keypoints
