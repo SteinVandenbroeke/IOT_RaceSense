@@ -7,30 +7,30 @@ from config import INPUT_SIZE, NUM_CLASSES
 def ASPP_block(inputs):
     """Atrous Spatial Pyramid Pooling - The brain of DeepLab"""
     # 1x1 Convolution
-    b0 = Conv2D(256, (1, 1), padding="same", use_bias=False)(inputs)
+    b0 = Conv2D(64, (1, 1), padding="same", use_bias=False)(inputs)
     b0 = BatchNormalization()(b0)
     b0 = Activation("relu")(b0)
 
     # Dilated Convolutions (The "Zoom Lenses")
-    b1 = Conv2D(256, (3, 3), dilation_rate=(6, 6), padding="same", use_bias=False)(inputs)
+    b1 = Conv2D(64, (3, 3), dilation_rate=(6, 6), padding="same", use_bias=False)(inputs)
     b1 = BatchNormalization()(b1)
     b1 = Activation("relu")(b1)
 
-    b2 = Conv2D(256, (3, 3), dilation_rate=(12, 12), padding="same", use_bias=False)(inputs)
+    b2 = Conv2D(64, (3, 3), dilation_rate=(12, 12), padding="same", use_bias=False)(inputs)
     b2 = BatchNormalization()(b2)
     b2 = Activation("relu")(b2)
 
     # Global Average Pooling
     b3 = GlobalAveragePooling2D()(inputs)
     b3 = Reshape((1, 1, inputs.shape[-1]))(b3)
-    b3 = Conv2D(256, (1, 1), padding="same", use_bias=False)(b3)
+    b3 = Conv2D(64, (1, 1), padding="same", use_bias=False)(b3)
     b3 = BatchNormalization()(b3)
     b3 = Activation("relu")(b3)
     b3 = UpSampling2D(size=(inputs.shape[1], inputs.shape[2]), interpolation="bilinear")(b3)
 
     # Combine
     x = Concatenate()([b0, b1, b2, b3])
-    x = Conv2D(256, (1, 1), padding="same", use_bias=False)(x)
+    x = Conv2D(64, (1, 1), padding="same", use_bias=False)(x)
     x = BatchNormalization()(x)
     return Activation("relu")(x)
 

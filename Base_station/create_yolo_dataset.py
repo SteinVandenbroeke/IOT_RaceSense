@@ -9,7 +9,7 @@ import shutil
 # ---------------------------------------------------------------------------
 JSON_DIR = 'car_detection/output_keypoints/keypoints'
 IMAGE_DIR = 'car_detection/output_keypoints/rgb'
-DATASET_DIR = 'Dataset'
+DATASET_DIR = 'car_detection_YOLO/carla_yolo_dataset'
 
 IMAGE_WIDTH = 800.0
 IMAGE_HEIGHT = 600.0
@@ -198,5 +198,5 @@ def fix_yolo_labels(dataset_dir='carla_dataset/'):
 
 
 if __name__ == '__main__':
-    # create_yolo_dataset()
-    fix_yolo_labels()
+    create_yolo_dataset()
+    # fix_yolo_labels()

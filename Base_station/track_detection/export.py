@@ -2,7 +2,7 @@ import os
 import tensorflow as tf
 from dataset import build_segmentation_dataset
 from config import *
-
+import subprocess # Add this import
 
 def representative_data_gen():
     """Yields single images for INT8 calibration."""
@@ -51,16 +51,37 @@ def export_to_edgetpu():
     print(f"Quantizing model using {NUM_CALIB_SAMPLES} samples (this may take a minute)...")
     tflite_quant_model = converter.convert()
 
-    # Save it!
+    # Save the standard TFLite model first
     tflite_path = os.path.join(EXPORT_DIR, "track_mask_quantized.tflite")
     with open(tflite_path, "wb") as f:
         f.write(tflite_quant_model)
 
     print(f"\n✅ Successfully saved quantized model to: {tflite_path}")
     print("=" * 60)
-    print("Final Step: Run the Edge TPU Compiler in your terminal:")
-    print(f"edgetpu_compiler {tflite_path}")
-    print("=" * 60)
+
+    # --- NEW AUTOMATION CODE ---
+    print("Executing Edge TPU Compiler...")
+
+    try:
+        # Run the compiler and output it to the same EXPORT_DIR
+        result = subprocess.run(
+            ['edgetpu_compiler', tflite_path, '-o', EXPORT_DIR],
+            capture_output=True,
+            text=True,
+            check=True  # Raises an exception if the command fails
+        )
+        print("✅ Edge TPU compilation successful!")
+        print(result.stdout)  # Print the compiler's success message
+
+    except subprocess.CalledProcessError as e:
+        print("\n❌ Edge TPU compilation failed!")
+        print("Error Output:")
+        print(e.stdout)
+        print(e.stderr)
+
+    except FileNotFoundError:
+        print("\n❌ Error: 'edgetpu_compiler' is not installed or not in your system PATH.")
+        print("Please install it following the official Coral documentation.")
 
 
 if __name__ == "__main__":

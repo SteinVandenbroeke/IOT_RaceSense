@@ -14,7 +14,7 @@ os.makedirs(EXPORT_DIR,     exist_ok=True)
 
 # ── Model ──────────────────────────────────────────────────────────────────────
 NUM_CLASSES    = 1          # 1 channel output (Binary: Track vs Background)
-INPUT_SIZE     = (320, 320) # High resolution for static camera masking
+INPUT_SIZE     = (160, 160) # High resolution for static camera masking
 
 # ── Training ───────────────────────────────────────────────────────────────────
 BATCH_SIZE     = 8          # Lower batch size because 512x512 takes a lot of VRAM

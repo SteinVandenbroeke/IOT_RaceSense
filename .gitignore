@@ -3,5 +3,6 @@ Base_station/car_detection/carla_dataset
 Base_station/car_detection/manual_dataset
 Base_station/track_detection/carla_dataset_lines
 Base_station/track_detection/carla_dataset_road
+Base_station/car_detection_YOLO/carla_yolo_dataset
 Base_station/models
 Base_station/finetuned_models
