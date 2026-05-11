@@ -18,10 +18,9 @@ async def listen_to_ws(ws, mqtt_client):
             cloud_data = json.loads(message)
             print(f"Cloud sent: {cloud_data}")
 
-            if cloud_data['type'] == 'flag_change':
-                # Ensure exactly 4 spaces inside the 'if' block. No tabs!
-                await mqtt_client.publish("flag/TSU", payload=cloud_data["color"])
 
+            if cloud_data['type'] == 'flag_change':
+                await mqtt_client.publish("flag/TSU", payload=cloud_data["color"])
             # Example: Forward cloud command to MQTT
             # await mqtt_client.publish("commands/from_cloud", payload=json.dumps(cloud_data))
 
@@ -29,6 +28,7 @@ async def listen_to_ws(ws, mqtt_client):
         print("WebSocket connection closed from the server.")
     except Exception as e:
         print(f"WS Receiver Error: {e}")
+
 
 async def listen_to_mqtt(ws, mqtt_client):
     """Listens for incoming MQTT messages and forwards them to the WebSocket."""
@@ -49,7 +49,7 @@ async def listen_to_mqtt(ws, mqtt_client):
                 print("flag change data:", data)
                 # Use await to safely publish back to MQTT
                 color = data.get("color", "")
-                        await mqtt_client.publish("flag/TSU", payload=color)
+                await mqtt_client.publish("flag/TSU", payload=color)
                 print(f"Sent command to Pycom on flag/TSU")
 
             elif "sensors/OBU" in topic:
