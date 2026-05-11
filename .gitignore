@@ -6,3 +6,6 @@ Base_station/track_detection/carla_dataset_road
 Base_station/car_detection_YOLO/carla_yolo_dataset
 Base_station/models
 Base_station/finetuned_models
+Base_station/car_detection/checkpoints
+Base_station/car_detection/export
+Base_station/track_detection/checkpoints
