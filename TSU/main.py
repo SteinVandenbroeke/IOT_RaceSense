@@ -50,7 +50,7 @@ async def listen_to_mqtt(ws, mqtt_client):
                 print(f"Sent command to Pycom on flag/TSU")
 
             elif "sensors/OBU" in topic:
-                print(f"--> Forwarding sensor data from {topic}: {data}")
+                #print(f"--> Forwarding sensor data from {topic}: {data}")
                 processed_data = {
                     "device_topic": topic,
                     "processed_value": data
