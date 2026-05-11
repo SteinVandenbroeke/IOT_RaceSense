@@ -18,7 +18,6 @@ async def listen_to_ws(ws, mqtt_client):
             cloud_data = json.loads(message)
             print(f"Cloud sent: {cloud_data}")
 
-
             if cloud_data['type'] == 'flag_change':
                 await mqtt_client.publish("flag/TSU", payload=cloud_data["color"])
             # Example: Forward cloud command to MQTT
