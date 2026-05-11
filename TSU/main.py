@@ -16,7 +16,7 @@ async def listen_to_ws(ws, mqtt_client):
     try:
         async for message in ws:
             cloud_data = json.loads(message)
-            # print(f"Cloud sent: {cloud_data}")
+            print(f"Cloud sent: {cloud_data}")
 
             # Example: Forward cloud command to MQTT
             # await mqtt_client.publish("commands/from_cloud", payload=json.dumps(cloud_data))
@@ -62,7 +62,6 @@ async def listen_to_mqtt(ws, mqtt_client):
         print("WebSocket disconnected while trying to send data.")
     except Exception as e:
         print(f"MQTT Listener Error: {e}")
-
 
 async def main():
     """Main loop handling connections and automatic reconnections."""
