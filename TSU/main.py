@@ -50,6 +50,11 @@ async def listen_to_mqtt(ws, mqtt_client):
                 # Use await to safely publish back to MQTT
                 color = (data.get("color", "")).upper()
                 await mqtt_client.publish("flag/TSU", payload=color)
+                processed_data = {
+                    "type": "flag_change",
+                    "color": color
+                }
+                await ws.send(json.dumps(processed_data))
                 print(f"Sent command to Pycom on flag/TSU")
 
             elif "sensors/OBU" in topic:
