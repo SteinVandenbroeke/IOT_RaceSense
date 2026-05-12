@@ -20,7 +20,7 @@ async def listen_to_ws(ws, mqtt_client):
 
 
             if cloud_data['type'] == 'flag_change':
-                await mqtt_client.publish("flag/TSU", payload=cloud_data["color"])
+                await mqtt_client.publish("flag/TSU", payload=cloud_data["color"].upper())
             # Example: Forward cloud command to MQTT
             # await mqtt_client.publish("commands/from_cloud", payload=json.dumps(cloud_data))
 
@@ -48,7 +48,7 @@ async def listen_to_mqtt(ws, mqtt_client):
             if "flag/OBU" in topic:
                 print("flag change data:", data)
                 # Use await to safely publish back to MQTT
-                color = data.get("color", "").upper()
+                color = (data.get("color", "")).upper()
                 await mqtt_client.publish("flag/TSU", payload=color)
                 print(f"Sent command to Pycom on flag/TSU")
 
