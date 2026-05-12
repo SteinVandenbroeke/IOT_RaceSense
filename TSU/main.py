@@ -48,7 +48,7 @@ async def listen_to_mqtt(ws, mqtt_client):
             if "flag/OBU" in topic:
                 print("flag change data:", data)
                 # Use await to safely publish back to MQTT
-                color = data.get("color", "")
+                color = data.get("color", "").upper()
                 await mqtt_client.publish("flag/TSU", payload=color)
                 print(f"Sent command to Pycom on flag/TSU")
 
