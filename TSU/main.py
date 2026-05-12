@@ -52,7 +52,7 @@ async def listen_to_mqtt(ws, mqtt_client):
                 await mqtt_client.publish("flag/TSU", payload=color)
                 processed_data = {
                     "type": "flag_change",
-                    "color": color
+                    "color": color.title()
                 }
                 await ws.send(json.dumps(processed_data))
                 print(f"Sent command to Pycom on flag/TSU")
