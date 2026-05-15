@@ -4,3 +4,4 @@ fastapi
 websocket-client
 paho-mqtt
 aiomqtt
+opencv-python

@@ -2,6 +2,10 @@ import asyncio
 import json
 import aiomqtt
 import websockets
+import cv2
+import base64
+import threading
+import time
 
 # --- Configuration ---
 MQTT_BROKER = "127.0.0.1"
@@ -9,6 +13,35 @@ MQTT_PORT = 1883
 MQTT_TOPIC = "#"
 
 WS_URL = "wss://racesense.dcsteen.com/ws/coral"
+
+latest_frame_b64 = None
+
+def camera_worker():
+    """Runs in a background thread so OpenCV doesn't block the async network loop."""
+    global latest_frame_b64
+
+    print("Initializing Camera...")
+    # NOTE: If this gives you a white screen, change `0` to `gstreamer_pipeline, cv2.CAP_GSTREAMER`
+    camera = cv2.VideoCapture(0)
+
+    # Optional: Lower resolution to save bandwidth
+    # camera.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+    # camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
+
+    while True:
+        success, frame = camera.read()
+        if success:
+            # Compress the image to JPEG.
+            # We lower the quality to 50% to prevent lagging out the WebSocket
+            ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
+            if ret:
+                # Convert the raw bytes to a base64 string so it can be sent in JSON
+                latest_frame_b64 = base64.b64encode(buffer).decode('utf-8')
+
+        # Small sleep to prevent maxing out the CPU
+        time.sleep(0.03)
+
+    # --- WebSocket & MQTT Listeners ---
 
 
 async def listen_to_ws(ws, mqtt_client):
@@ -71,12 +104,36 @@ async def listen_to_mqtt(ws, mqtt_client):
     except Exception as e:
         print(f"MQTT Listener Error: {e}")
 
+
+async def stream_camera_to_ws(ws):
+    """Periodically grabs the latest camera frame and sends it to the cloud."""
+    global latest_frame_b64
+    try:
+        while True:
+            if latest_frame_b64:
+                payload = {
+                    "type": "video_frame",
+                    "image": latest_frame_b64
+                }
+                await ws.send(json.dumps(payload))
+
+            # Send at roughly 10 FPS (0.1s delay) to avoid flooding the server
+            await asyncio.sleep(0.1)
+
+    except websockets.exceptions.ConnectionClosed:
+        print("WebSocket disconnected while trying to send Video data.")
+    except Exception as e:
+        print(f"Camera Streamer Error: {e}")
+
+
 async def main():
-    """Main loop handling connections and automatic reconnections."""
+    # Start the camera thread BEFORE we start the network loop
+    threading.Thread(target=camera_worker, daemon=True).start()
+
     while True:
         try:
             print(f"Connecting to WebSocket at {WS_URL}...")
-            async with websockets.connect(WS_URL) as ws:
+            async with websockets.connect(WS_URL, max_size=None) as ws:
                 print("Connected to Digital Ocean WebSocket!")
 
                 print(f"Connecting to MQTT Broker at {MQTT_BROKER}...")
@@ -84,13 +141,13 @@ async def main():
                     print("Connected to Local Mosquitto Broker!")
                     await mqtt_client.subscribe(MQTT_TOPIC)
 
-                    # Create concurrent tasks for both listeners
+                    # Now we have THREE tasks running simultaneously
                     ws_task = asyncio.create_task(listen_to_ws(ws, mqtt_client))
                     mqtt_task = asyncio.create_task(listen_to_mqtt(ws, mqtt_client))
+                    cam_task = asyncio.create_task(stream_camera_to_ws(ws))
 
-                    # Run both tasks until ONE of them finishes/fails (e.g., a connection drops)
                     done, pending = await asyncio.wait(
-                        [ws_task, mqtt_task],
+                        [ws_task, mqtt_task, cam_task],
                         return_when=asyncio.FIRST_COMPLETED
                     )
 
@@ -98,10 +155,8 @@ async def main():
                     for task in pending:
                         task.cancel()
 
-        except (websockets.exceptions.WebSocketException, aiomqtt.MqttError, OSError) as e:
-            print(f"Connection dropped/failed: {e}")
         except Exception as e:
-            print(f"Unexpected error: {e}")
+            print(f"Connection dropped/failed: {e}")
 
         print("Reconnecting in 5 seconds...\n")
         await asyncio.sleep(5)
