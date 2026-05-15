@@ -5,9 +5,7 @@ matplotlib.use('Agg')  # Forces headless mode
 import matplotlib.pyplot as plt
 from PIL import Image
 import cv2
-import glob
 import os
-import random
 import io
 from flask import Flask, send_file
 import tflite_runtime.interpreter as tflite
@@ -15,23 +13,30 @@ import platform
 
 # --- Configuration ---
 MODEL_PATH = "mobilenetv2_tpu_segmentation.tflite"
-TEST_IMAGE_DIR = "../../test_images"
+TEST_IMAGE_PATH = "../../test_images/High_Curve_ClearNoon_model3_BWD_6577.png"
 IMG_SIZE = 224
 
 # --- Initialize Flask ---
 app = Flask(__name__)
 
-# Function to load the correct delegate based on OS
+# Function to load the correct delegate based on OS and check for TPU vs CPU
 def make_interpreter(model_path):
     # This string is the standard path for the Edge TPU library on Linux/Coral
     EDGETPU_SHARED_LIB = 'libedgetpu.so.1'
 
-    return tflite.Interpreter(
-        model_path=model_path,
-        experimental_delegates=[
-            tflite.load_delegate(EDGETPU_SHARED_LIB)
-        ]
-    )
+    try:
+        # Attempt to load the Edge TPU Delegate
+        delegate = tflite.load_delegate(EDGETPU_SHARED_LIB)
+        interpreter = tflite.Interpreter(
+            model_path=model_path,
+            experimental_delegates=[delegate]
+        )
+        print(">>> HARDWARE CHECK: Edge TPU successfully loaded. Using TPU for inference. <<<")
+        return interpreter
+    except Exception as e:
+        # If loading fails (e.g., TPU not plugged in or library missing), fallback to CPU
+        print(f">>> HARDWARE CHECK: Edge TPU not found or failed to load ({e}). Falling back to CPU. <<<")
+        return tflite.Interpreter(model_path=model_path)
 
 
 interpreter = make_interpreter(MODEL_PATH)
@@ -128,22 +133,15 @@ def create_result_buffer(original_img, raw_mask, processed_mask):
 # --- Flask Routes ---
 @app.route('/')
 def serve_inference_image():
-    all_files = glob.glob(os.path.join(TEST_IMAGE_DIR, "*.*"))
-    test_images = [f for f in all_files if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+    # Verify the image exists before proceeding
+    if not os.path.exists(TEST_IMAGE_PATH):
+        return f"Image not found! Please check the TEST_IMAGE_PATH in the script: {TEST_IMAGE_PATH}", 404
 
-    if not test_images:
-        return "No test images found in the configured directory!", 404
-
-    # Pick a random image on every page refresh
-    img_path = random.choice(test_images)
-    filename = os.path.basename(img_path)
-    base_name = os.path.splitext(filename)[0]
-
-
-    print(f"Serving inference for: {filename}")
+    filename = os.path.basename(TEST_IMAGE_PATH)
+    print(f"Serving inference for single image: {filename}")
 
     # Run Pipeline
-    input_tensor, original_resized = preprocess_image(img_path)
+    input_tensor, original_resized = preprocess_image(TEST_IMAGE_PATH)
     raw_predicted_mask = predict_mask(input_tensor)
     processed_mask = post_process_mask(raw_predicted_mask)
 
@@ -155,5 +153,8 @@ def serve_inference_image():
 
 
 if __name__ == "__main__":
+    print(f"\nConfiguration:")
+    print(f"- Model: {MODEL_PATH}")
+    print(f"- Target Image: {TEST_IMAGE_PATH}")
     print("\nStarting Web Server on http://0.0.0.0:5000")
     app.run(host='0.0.0.0', port=5000, debug=False)
