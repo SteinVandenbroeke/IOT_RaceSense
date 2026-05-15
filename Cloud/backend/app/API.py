@@ -95,7 +95,13 @@ async def websocket_coral_endpoint(websocket: WebSocket):
         while True:
             data_text = await websocket.receive_text()
             payload = json.loads(data_text)
+
+            if payload.get("type") == "video_frame":
+                await manager.broadcast_to_ui(data_text)
+                continue
+
             car_id = 0
+            sensor_readings = {}
 
             if "processed_value" in payload:
                 sensor_readings = payload["processed_value"]

@@ -131,4 +131,32 @@
         </div>
     </div>
 
+    <div>
+        <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Live Camera Feed</h2>
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-lg flex justify-center items-center aspect-video relative overflow-hidden">
+
+            {#if globalSocket.latestVideoFrame}
+                <img
+                    src="data:image/jpeg;base64,{globalSocket.latestVideoFrame}"
+                    alt="Live Coral Feed"
+                    class="w-full h-full object-contain rounded-lg"
+                />
+            {:else}
+                <div class="flex flex-col items-center justify-center text-zinc-600 animate-pulse">
+                    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                    <span class="text-sm font-mono uppercase tracking-widest">Awaiting Video Stream...</span>
+                </div>
+            {/if}
+
+            {#if globalSocket.latestVideoFrame}
+                <div class="absolute top-6 right-6 flex items-center gap-2 bg-black/50 px-2 py-1 rounded backdrop-blur-sm">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    <span class="text-[10px] font-bold text-white tracking-widest">REC</span>
+                </div>
+            {/if}
+        </div>
+    </div>
+
 </section>

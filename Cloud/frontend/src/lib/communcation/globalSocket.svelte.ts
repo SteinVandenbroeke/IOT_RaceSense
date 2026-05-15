@@ -40,6 +40,7 @@ interface IncomingPayload {
 }
 
 class GlobalSocket {
+	latestVideoFrame: string | null = $state(null);
 	isConnected = $state(false);
 
 	// 1. The Garage: Store telemetry for ALL active cars by their CarId
@@ -103,6 +104,11 @@ class GlobalSocket {
 		this.socket.onmessage = (event) => {
 			try {
 				const rawMessage = JSON.parse(event.data);
+
+				if (rawMessage.type === 'video_frame') {
+          			this.latestVideoFrame = rawMessage.image;
+          			return; // Stop processing, this is a massive image string, not telemetry!
+       			}
 
 				// 1. Check if this is a Race Control Command
 				if (rawMessage.type === 'flag_change') {
