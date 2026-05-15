@@ -1,0 +1,10 @@
+track_detection/output_line_topdown/
+.idea/
+dataset/
+car_masking/output_car/
+track_detection/output_road_topdown/
+track_detection/output_line_topdown/
+track_detection/working_line_detection/
+best_saved_model/
+best.onnx
+best.pt
