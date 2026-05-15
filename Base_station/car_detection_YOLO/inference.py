@@ -9,7 +9,7 @@ app = Flask(__name__)
 MODEL_PATH = 'best_edgetpu.tflite'
 # MODEL_PATH = '../../runs/pose/carla_yolo_dataset/run_1-2/weights/best.pt'
 print(f"Loading Coral-optimized model: {MODEL_PATH}")
-model = YOLO(MODEL_PATH, task='pose')
+model = YOLO('best_edgetpu.tflite', task='detect')
 print(f"Model is using: {model.device}")
 @app.route('/')
 def serve_inference_image():
