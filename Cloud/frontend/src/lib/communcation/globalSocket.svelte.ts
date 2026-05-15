@@ -41,6 +41,7 @@ interface IncomingPayload {
 
 class GlobalSocket {
 	latestVideoFrame: string | null = $state(null);
+	aiVisionState: 'SCANNING' | 'CLEAR' | 'VIOLATION' = $state('SCANNING'); // NEW
 	isConnected = $state(false);
 
 	// 1. The Garage: Store telemetry for ALL active cars by their CarId
@@ -107,6 +108,9 @@ class GlobalSocket {
 
 				if (rawMessage.type === 'video_frame') {
           			this.latestVideoFrame = rawMessage.image;
+					if (rawMessage.detection) {
+						this.aiVisionState = rawMessage.detection;
+					}
           			return; // Stop processing, this is a massive image string, not telemetry!
        			}
 

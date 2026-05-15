@@ -108,12 +108,22 @@ async def listen_to_mqtt(ws, mqtt_client):
 async def stream_camera_to_ws(ws):
     """Periodically grabs the latest camera frame and sends it to the cloud."""
     global latest_frame_b64
+
+    vision_states = ["SCANNING", "CLEAR", "VIOLATION"]
+    current_state_idx = 0
+    last_switch_time = time.time()
+
     try:
         while True:
+            if time.time() - last_switch_time > 3:
+                current_state_idx = (current_state_idx + 1) % 3
+                last_switch_time = time.time()
+
             if latest_frame_b64:
                 payload = {
                     "type": "video_frame",
-                    "image": latest_frame_b64
+                    "image": latest_frame_b64,
+                    "detection": vision_states[current_state_idx]
                 }
                 await ws.send(json.dumps(payload))
 
