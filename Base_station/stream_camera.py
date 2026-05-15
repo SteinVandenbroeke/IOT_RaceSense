@@ -8,10 +8,10 @@ app = Flask(__name__)
 # and convert it into a format OpenCV understands.
 gstreamer_pipeline = (
     "v4l2src device=/dev/video0 ! "
-    "video/x-raw,width=640,height=480,framerate=30/1 ! "
+    "video/x-raw,format=YUY2,width=640,height=480,framerate=30/1 ! "
     "videoconvert ! "
     "video/x-raw,format=BGR ! "
-    "appsink drop=1"
+    "appsink drop=true max-buffers=1"
 )
 
 # We pass the pipeline string and explicitly tell OpenCV to use the GStreamer backend
