@@ -11,7 +11,6 @@ MODEL_PATH = 'best_edgetpu.tflite'
 print(f"Loading Coral-optimized model: {MODEL_PATH}")
 model = YOLO(MODEL_PATH, task='pose')
 print(f"Model is using: {model.device}")
-model.model.names = {0: 'car'}
 @app.route('/')
 def serve_inference_image():
     image_path = '../test_images/Angled_Street_ClearNoon_mkz_2020_BWD_2664.png'
