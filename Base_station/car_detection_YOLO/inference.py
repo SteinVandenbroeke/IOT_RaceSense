@@ -9,7 +9,7 @@ app = Flask(__name__)
 MODEL_PATH = 'best_edgetpu.tflite'
 # MODEL_PATH = '../../runs/pose/carla_yolo_dataset/run_1-2/weights/best.pt'
 print(f"Loading Coral-optimized model: {MODEL_PATH}")
-model = YOLO(MODEL_PATH, task='detect')
+model = YOLO(MODEL_PATH, task='pose')
 print(f"Model is using: {model.device}")
 model.model.names = {0: 'car'}
 @app.route('/')
