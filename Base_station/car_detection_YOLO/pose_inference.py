@@ -17,7 +17,7 @@ model = YOLO(MODEL_PATH)
 @app.route('/')
 def serve_inference_image():
     # 1. Run inference
-    results = model.predict(source=IMAGE_PATH, conf=0.25)
+    results = model.predict(source=IMAGE_PATH, conf=0.25, imgsz=320)
 
     # 2. Extract the annotated image as a numpy array
     # .plot() automatically draws the boxes, labels, and pose keypoints
