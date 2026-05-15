@@ -158,7 +158,7 @@
                         {#if globalSocket.aiVisionState === 'SCANNING'}
                             <div class="flex items-center gap-2 bg-zinc-900/80 border border-zinc-700 px-3 py-1.5 rounded backdrop-blur-md transition-all duration-300">
                                 <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                                <span class="text-[10px] sm:text-xs font-mono font-bold text-cyan-400 tracking-widest">AI: SEEKING TARGET</span>
+                                <span class="text-[10px] sm:text-xs font-mono font-bold text-cyan-400 tracking-widest">NO VEHICLE DETECTED</span>
                             </div>
                         {:else if globalSocket.aiVisionState === 'CLEAR'}
                             <div class="flex items-center gap-2 bg-emerald-950/80 border border-emerald-500/50 px-3 py-1.5 rounded backdrop-blur-md transition-all duration-300">
@@ -168,7 +168,7 @@
                         {:else if globalSocket.aiVisionState === 'VIOLATION'}
                             <div class="flex items-center gap-2 bg-red-950/90 border border-red-500 px-3 py-1.5 rounded backdrop-blur-md animate-pulse transition-all duration-300">
                                 <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                <span class="text-[10px] sm:text-xs font-mono font-bold text-red-500 tracking-widest">VIOLATION DETECTED</span>
+                                <span class="text-[10px] sm:text-xs font-mono font-bold text-red-500 tracking-widest">TRACK VIOLATION DETECTED</span>
                             </div>
                         {/if}
 
@@ -178,11 +178,7 @@
                         </div>
                     </div>
 
-                    <div class="flex justify-between items-end opacity-70">
-                        <div class="font-mono text-[10px] text-zinc-400">
-                            COORD: {activeCar.Accelerometer?.acceleration?.[0]?.toFixed(2) || '0.00'}, {activeCar.Accelerometer?.acceleration?.[1]?.toFixed(2) || '0.00'}<br>
-                            SYS: OBU_ACTIVE
-                        </div>
+                    <div class="flex justify-end items-end opacity-70">
                         <div class="font-mono text-[10px] text-zinc-400 text-right">
                             v1.0.4 EDGE_TPU<br>
                             640x480@10FPS
