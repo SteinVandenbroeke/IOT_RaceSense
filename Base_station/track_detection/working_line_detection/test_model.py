@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 import matplotlib
 
 matplotlib.use('Agg')  # Forces headless mode
@@ -11,6 +10,8 @@ import os
 import random
 import io
 from flask import Flask, send_file
+import tflite_runtime.interpreter as tflite
+import platform
 
 # --- Configuration ---
 MODEL_PATH = "mobilenetv2_tpu_segmentation.tflite"
@@ -20,10 +21,20 @@ IMG_SIZE = 224
 # --- Initialize Flask ---
 app = Flask(__name__)
 
-# --- Load the TFLite Model ---
-# Note: If running on the actual Coral TPU later, you'd use tflite_runtime
-# and load the libedgetpu delegate here.
-interpreter = tf.lite.Interpreter(model_path=MODEL_PATH)
+# Function to load the correct delegate based on OS
+def make_interpreter(model_path):
+    # This string is the standard path for the Edge TPU library on Linux/Coral
+    EDGETPU_SHARED_LIB = 'libedgetpu.so.1'
+
+    return tflite.Interpreter(
+        model_path=model_path,
+        experimental_delegates=[
+            tflite.load_delegate(EDGETPU_SHARED_LIB)
+        ]
+    )
+
+
+interpreter = make_interpreter(MODEL_PATH)
 interpreter.allocate_tensors()
 
 input_details = interpreter.get_input_details()[0]
