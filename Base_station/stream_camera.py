@@ -3,21 +3,26 @@ from flask import Flask, Response
 
 app = Flask(__name__)
 
-# Force V4L2 backend
-camera = cv2.VideoCapture(0, cv2.CAP_V4L2)
+# This is the magic string. It tells GStreamer to grab the camera,
+# set the exact resolution/framerate we saw in your terminal,
+# and convert it into a format OpenCV understands.
+gstreamer_pipeline = (
+    "v4l2src device=/dev/video0 ! "
+    "video/x-raw,width=640,height=480,framerate=30/1 ! "
+    "videoconvert ! "
+    "video/x-raw,format=BGR ! "
+    "appsink drop=1"
+)
 
-# Force the specific format the native Coral camera requires
-camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'YUYV'))
-camera.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 320)
+# We pass the pipeline string and explicitly tell OpenCV to use the GStreamer backend
+camera = cv2.VideoCapture(gstreamer_pipeline, cv2.CAP_GSTREAMER)
 
 
 def generate_frames():
     while True:
         success, frame = camera.read()
         if not success:
-            # This will print in your terminal if the camera is failing
-            print("ERROR: Failed to grab frame from camera!")
+            print("ERROR: OpenCV could not read from the GStreamer pipeline!")
             break
         else:
             ret, buffer = cv2.imencode('.jpg', frame)
@@ -27,13 +32,11 @@ def generate_frames():
                    b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
 
-# We moved the stream to a specific URL path
 @app.route('/video_feed')
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-# Now the main URL returns a proper webpage with the video embedded inside it
 @app.route('/')
 def index():
     return '''
@@ -47,7 +50,6 @@ def index():
       </head>
       <body>
         <h1>Coral Dev Board Camera Feed</h1>
-        <!-- This image tag is what pulls in the video stream -->
         <img src="/video_feed" width="640" height="480" alt="Video feed loading..." />
       </body>
     </html>
@@ -55,5 +57,5 @@ def index():
 
 
 if __name__ == "__main__":
-    print("Starting raw camera stream server...")
+    print("Starting GStreamer-powered camera stream server...")
     app.run(host='0.0.0.0', port=5000, debug=False)
