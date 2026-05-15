@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 # The native Coral Camera is typically on /dev/video1.
 # If you get a blank feed, try changing this '1' to a '0'.
-camera = cv2.VideoCapture(1)
+camera = cv2.VideoCapture(0)
 
 # Set the resolution (adjust if you need a different size)
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
