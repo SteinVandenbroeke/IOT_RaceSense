@@ -3,7 +3,7 @@ import random
 import shutil
 
 # Configuration
-BASE_DIR = "carla_dataset_road"
+BASE_DIR = "output_line_topdown"
 IMG_DIR = os.path.join(BASE_DIR, "rgb")
 MASK_DIR = os.path.join(BASE_DIR, "masks")
 SPLIT_RATIO = 0.8  # 80% for training, 20% for validation

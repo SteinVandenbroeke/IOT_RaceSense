@@ -6,8 +6,8 @@ import numpy as np
 import cv2
 
 # Create directories to store the output images and segmentation masks
-os.makedirs('output_track_topdown/rgb', exist_ok=True)
-os.makedirs('output_track_topdown/masks', exist_ok=True)
+os.makedirs('output_line_topdown/rgb', exist_ok=True)
+os.makedirs('output_line_topdown/masks', exist_ok=True)
 
 # ---------------------------------------------------------------------------
 # Setup: Parameters
@@ -18,7 +18,7 @@ PITCH_ANGLE = -90.0
 
 # --- SET YOUR ROAD CLASS ID HERE ---
 # Standard CARLA is 7. Based on your debug, it's likely 24 or 28.
-ROAD_CLASS = [1,24]
+ROAD_CLASS = [24]
 
 WEATHERS = {
     'ClearNoon': carla.WeatherParameters.ClearNoon,
@@ -26,6 +26,36 @@ WEATHERS = {
     'ClearSunset': carla.WeatherParameters.ClearSunset,
     'Night': carla.WeatherParameters.HardRainNight
 }
+
+
+def is_sharp_turn(waypoint, lookahead_distance=15.0, min_angle=20.0):
+    """
+    Checks if the road curves by at least `min_angle` degrees over `lookahead_distance`.
+    Excludes any turns that occur inside intersections.
+    """
+    # 1. Reject if the current waypoint is inside an intersection
+    if waypoint.is_junction:
+        return False
+
+    next_wps = waypoint.next(lookahead_distance)
+    if not next_wps:
+        return False  # Dead end or intersection loss
+
+    future_wp = next_wps[0]
+
+    # 2. Reject if the turn leads directly into an intersection
+    if future_wp.is_junction:
+        return False
+
+    yaw_current = waypoint.transform.rotation.yaw
+    yaw_future = future_wp.transform.rotation.yaw
+
+    # Calculate shortest angular difference
+    diff = abs(yaw_future - yaw_current) % 360.0
+    if diff > 180.0:
+        diff = 360.0 - diff
+
+    return diff >= min_angle
 
 
 def main():
@@ -72,7 +102,9 @@ def main():
         rgb_camera.listen(image_queue_rgb.put)
         seg_camera.listen(image_queue_seg.put)
 
-        all_waypoints = world_map.generate_waypoints(distance=15.0)
+        raw_waypoints = world_map.generate_waypoints(distance=15.0)
+        all_waypoints = [wp for wp in raw_waypoints if is_sharp_turn(wp, lookahead_distance=15.0, min_angle=20.0)]
+        print(f"Found {len(all_waypoints)} waypoints that match the 20-degree turn criteria.")
 
         # ------------------------------------------------------------------
         # MASTER LOOP
@@ -86,7 +118,12 @@ def main():
                 _ = image_queue_rgb.get()
                 _ = image_queue_seg.get()
 
-            sampled_waypoints = random.sample(all_waypoints, IMAGES_PER_WEATHER)
+            # Safely sample depending on how many waypoints survived the filter
+            sample_size = min(IMAGES_PER_WEATHER, len(all_waypoints))
+            if sample_size < IMAGES_PER_WEATHER:
+                print(f"Warning: Only {sample_size} valid turn waypoints available for {weather_name}.")
+
+            sampled_waypoints = random.sample(all_waypoints, sample_size)
 
             for i, waypoint in enumerate(sampled_waypoints):
                 cam_transform = waypoint.transform
@@ -101,8 +138,8 @@ def main():
                 seg_image = image_queue_seg.get()
 
                 file_name = f"{weather_name}_loc{i:03d}_{rgb_image.frame}"
-                rgb_path = f"output_track_topdown/rgb/{file_name}.png"
-                seg_path = f"output_track_topdown/masks/{file_name}.png"
+                rgb_path = f"output_line_topdown/rgb/{file_name}.png"
+                seg_path = f"output_line_topdown/masks/{file_name}.png"
 
                 rgb_image.save_to_disk(rgb_path)
 
