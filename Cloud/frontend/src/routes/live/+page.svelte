@@ -150,6 +150,8 @@
             {/if}
 
             {#if globalSocket.latestVideoFrame}
+                {@const reticleColor = globalSocket.aiVisionState === 'VIOLATION' ? 'border-red-500' : globalSocket.aiVisionState === 'CLEAR' ? 'border-emerald-500' : 'border-cyan-500/50'}
+
                 <div class="absolute inset-0 pointer-events-none p-4 sm:p-6 flex flex-col justify-between">
 
                     <div class="flex justify-between items-start">
@@ -186,8 +188,6 @@
                             640x480@10FPS
                         </div>
                     </div>
-
-                    {@const reticleColor = globalSocket.aiVisionState === 'VIOLATION' ? 'border-red-500' : globalSocket.aiVisionState === 'CLEAR' ? 'border-emerald-500' : 'border-cyan-500/50'}
 
                     <div class="absolute top-4 left-4 w-6 sm:w-10 h-6 sm:h-10 border-t-2 border-l-2 transition-colors duration-300 {reticleColor}"></div>
                     <div class="absolute top-4 right-4 w-6 sm:w-10 h-6 sm:h-10 border-t-2 border-r-2 transition-colors duration-300 {reticleColor}"></div>
