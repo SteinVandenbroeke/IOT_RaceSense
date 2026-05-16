@@ -74,38 +74,37 @@ async def listen_to_ws(ws, mqtt_client):
 async def listen_to_mqtt(ws, mqtt_client):
     """Listens for incoming MQTT messages and forwards them to the WebSocket."""
     try:
-        # FIX: In recent versions of aiomqtt, .messages is an async iterator property, not a method.
-        # No need for the "async with" block here anymore.
-        async for msg in mqtt_client.messages:
-            raw_payload = msg.payload.decode('utf-8')
-            topic = str(msg.topic)  # Convert aiomqtt Topic object to string
+        async with mqtt_client.messages() as messages:
+            async for msg in messages:
+                raw_payload = msg.payload.decode('utf-8')
+                topic = str(msg.topic)  # Convert aiomqtt Topic object to string
 
-            try:
-                data = json.loads(raw_payload)
-            except json.JSONDecodeError:
-                print(f"Failed to read JSON data on {topic}: {raw_payload}")
-                continue
+                try:
+                    data = json.loads(raw_payload)
+                except json.JSONDecodeError:
+                    print(f"Failed to read JSON data on {topic}: {raw_payload}")
+                    continue
 
-            if "flag/OBU" in topic:
-                print("flag change data:", data)
-                # Use await to safely publish back to MQTT
-                color = (data.get("color", "")).upper()
-                await mqtt_client.publish("flag/TSU", payload=color)
-                processed_data = {
-                    "type": "flag_change",
-                    "color": color.title()
-                }
-                await ws.send(json.dumps(processed_data))
-                print(f"Sent command to Pycom on flag/TSU")
+                if "flag/OBU" in topic:
+                    print("flag change data:", data)
+                    # Use await to safely publish back to MQTT
+                    color = (data.get("color", "")).upper()
+                    await mqtt_client.publish("flag/TSU", payload=color)
+                    processed_data = {
+                        "type": "flag_change",
+                        "color": color.title()
+                    }
+                    await ws.send(json.dumps(processed_data))
+                    print(f"Sent command to Pycom on flag/TSU")
 
-            elif "sensors/OBU" in topic:
-                #print(f"--> Forwarding sensor data from {topic}: {data}")
-                processed_data = {
-                    "device_topic": topic,
-                    "processed_value": data
-                }
-                # Use await to safely send to the WebSocket
-                await ws.send(json.dumps(processed_data))
+                elif "sensors/OBU" in topic:
+                    #print(f"--> Forwarding sensor data from {topic}: {data}")
+                    processed_data = {
+                        "device_topic": topic,
+                        "processed_value": data
+                    }
+                    # Use await to safely send to the WebSocket
+                    await ws.send(json.dumps(processed_data))
 
     except websockets.exceptions.ConnectionClosed:
         print("WebSocket disconnected while trying to send data.")
