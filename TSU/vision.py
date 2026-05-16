@@ -11,8 +11,8 @@ except ImportError:
     load_delegate = tf.lite.experimental.load_delegate
 
 # --- Model Paths (Make sure these are correct!) ---
-ROAD_MODEL_PATH = "mobilenetv2_tpu_segmentation_road_real.tflite"
-CAR_MODEL_PATH = "your_car_model.tflite"
+ROAD_MODEL_PATH = "models/mobilenetv2_tpu_segmentation_road_real.tflite"
+CAR_MODEL_PATH = "models/mobilenetv2_tpu_segmentation_car_real.tflite"
 IMG_SIZE = 224
 
 
