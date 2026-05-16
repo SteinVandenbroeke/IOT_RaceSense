@@ -1,14 +1,7 @@
 import numpy as np
 import cv2
 from PIL import Image
-
-try:
-    from tflite_runtime.interpreter import Interpreter, load_delegate
-except ImportError:
-    import tensorflow as tf
-
-    Interpreter = tf.lite.Interpreter
-    load_delegate = tf.lite.experimental.load_delegate
+from tflite_runtime.interpreter import Interpreter, load_delegate
 
 # --- Model Paths (Make sure these are correct!) ---
 ROAD_MODEL_PATH = "models/mobilenetv2_tpu_segmentation_road_real.tflite"
