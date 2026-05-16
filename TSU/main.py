@@ -22,7 +22,7 @@ def camera_worker():
 
     print("Initializing Camera...")
     # NOTE: If this gives you a white screen, change `0` to `gstreamer_pipeline, cv2.CAP_GSTREAMER`
-    camera = cv2.VideoCapture(0, cv2.CAP_V4L2)
+    camera = cv2.VideoCapture(1, cv2.CAP_V4L2)
 
     # Optional: Lower resolution to save bandwidth
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
