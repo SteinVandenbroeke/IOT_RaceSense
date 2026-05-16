@@ -83,10 +83,10 @@ class VisionPipeline:
 
         # 4. Check status
         if np.count_nonzero(final_car) == 0:
-            return "NO_CAR"
+            return "SCANNING"
 
         overlap = cv2.bitwise_and(final_road, final_car)
         if np.count_nonzero(overlap) == 0:
             return "VIOLATION"
 
-        return "CLEAR"  # Changed from "OK" to "CLEAR" to match your UI states
+        return "CLEAR"
