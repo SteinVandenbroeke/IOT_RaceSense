@@ -27,8 +27,7 @@ class EdgeTPUSegmentationModel:
 
     def preprocess(self, frame_rgb):
         """Converts an OpenCV live frame (RGB array) into the TFLite tensor."""
-        img = Image.fromarray(frame_rgb)
-        img_resized = img.resize((IMG_SIZE, IMG_SIZE), Image.Resampling.BILINEAR)
+        img_resized = cv2.resize(frame_rgb, (IMG_SIZE, IMG_SIZE), interpolation=cv2.INTER_LINEAR)
 
         input_data = np.array(img_resized, dtype=np.float32)
         input_data = (input_data / 127.5) - 1.0
@@ -62,31 +61,42 @@ def post_process_mask(binary_mask):
 class VisionPipeline:
     """Wrapper class to be imported into main.py"""
 
-    def __init__(self):
+    def __init__(self, road_update_interval=100):
         self.road_model = EdgeTPUSegmentationModel(ROAD_MODEL_PATH)
         self.car_model = EdgeTPUSegmentationModel(CAR_MODEL_PATH)
+
+        # Caching variables
+        self.cached_road_mask = None
+        self.frame_counter = 0
+        self.road_update_interval = road_update_interval
 
     def process_frame(self, frame_bgr):
         # 1. Convert OpenCV BGR to RGB
         frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
 
-        # 2. Preprocess & Predict
-        in_road = self.road_model.preprocess(frame_rgb)
+        # 2. Process CAR first (Runs every frame)
         in_car = self.car_model.preprocess(frame_rgb)
-
-        raw_road = self.road_model.predict(in_road)
         raw_car = self.car_model.predict(in_car)
-
-        # 3. Post Process
-        final_road = post_process_mask(raw_road)
         final_car = post_process_mask(raw_car)
 
-        # 4. Check status
-        if np.count_nonzero(final_car) == 0:
+        # 3. Early Exit: If no car, don't waste time on the road model!
+        # (Using cv2.countNonZero is slightly faster than np.count_nonzero)
+        if cv2.countNonZero(final_car) == 0:
+            self.frame_counter += 1
             return "SCANNING"
 
-        overlap = cv2.bitwise_and(final_road, final_car)
-        if np.count_nonzero(overlap) == 0:
+        # 4. Process ROAD only if missing OR if it's time for an update
+        if self.cached_road_mask is None or self.frame_counter % self.road_update_interval == 0:
+            in_road = self.road_model.preprocess(frame_rgb)
+            raw_road = self.road_model.predict(in_road)
+            self.cached_road_mask = post_process_mask(raw_road)
+
+        self.frame_counter += 1
+
+        # 5. Check status against the cached road mask
+        overlap = cv2.bitwise_and(self.cached_road_mask, final_car)
+
+        if cv2.countNonZero(overlap) == 0:
             return "VIOLATION"
 
         return "CLEAR"
