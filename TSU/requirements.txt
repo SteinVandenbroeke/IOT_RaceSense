@@ -6,3 +6,6 @@ paho-mqtt
 aiomqtt
 opencv-python
 Pillow==9.5.0
+
+--extra-index-url https://google-coral.github.io/py-repo/
+tflite-runtime
