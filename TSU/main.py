@@ -6,19 +6,24 @@ import cv2
 import base64
 import threading
 import time
+import vision
 
 # --- Configuration ---
 MQTT_BROKER = "127.0.0.1"
 MQTT_PORT = 1883
 MQTT_TOPIC = "#"
-
 WS_URL = "wss://racesense.dcsteen.com/ws/coral"
 
+# Globals to share data between the camera thread and network async loop
 latest_frame_b64 = None
+latest_detection_status = "SCANNING" # Default state
 
 def camera_worker():
-    """Runs in a background thread so OpenCV doesn't block the async network loop."""
-    global latest_frame_b64
+    """Runs in a background thread so OpenCV and ML don't block the async network loop."""
+    global latest_frame_b64, latest_detection_status
+
+    print("Initializing Vision Pipeline...")
+    pipeline = vision.VisionPipeline()
 
     print("Initializing Camera...")
     # NOTE: If this gives you a white screen, change `0` to `gstreamer_pipeline, cv2.CAP_GSTREAMER`
@@ -31,8 +36,11 @@ def camera_worker():
     while True:
         success, frame = camera.read()
         if success:
-            # Compress the image to JPEG.
-            # We lower the quality to 50% to prevent lagging out the WebSocket
+            # 1. Run the ML Inference on the current frame
+            # This updates the global status to NO_CAR, CLEAR, or VIOLATION
+            latest_detection_status = pipeline.process_frame(frame)
+
+            # 2. Compress the image to JPEG for WebSocket
             ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
             if ret:
                 # Convert the raw bytes to a base64 string so it can be sent in JSON
@@ -106,24 +114,16 @@ async def listen_to_mqtt(ws, mqtt_client):
 
 
 async def stream_camera_to_ws(ws):
-    """Periodically grabs the latest camera frame and sends it to the cloud."""
-    global latest_frame_b64
-
-    vision_states = ["SCANNING", "CLEAR", "VIOLATION"]
-    current_state_idx = 0
-    last_switch_time = time.time()
+    """Periodically grabs the latest camera frame & ML status and sends it."""
+    global latest_frame_b64, latest_detection_status
 
     try:
         while True:
-            if time.time() - last_switch_time > 3:
-                current_state_idx = (current_state_idx + 1) % 3
-                last_switch_time = time.time()
-
             if latest_frame_b64:
                 payload = {
                     "type": "video_frame",
                     "image": latest_frame_b64,
-                    "detection": vision_states[current_state_idx]
+                    "detection": latest_detection_status # <-- NOW SENDS THE REAL ML STATUS
                 }
                 await ws.send(json.dumps(payload))
 
