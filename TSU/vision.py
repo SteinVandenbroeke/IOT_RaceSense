@@ -6,7 +6,7 @@ from tflite_runtime.interpreter import Interpreter, load_delegate
 
 # --- Model Paths (Make sure these are correct!) ---
 ROAD_MODEL_PATH = "models/mobilenetv2_tpu_segmentation_road_real.tflite"
-CAR_MODEL_PATH = "models/mobilenetv2_tpu_segmentation_car_real.tflite"
+CAR_MODEL_PATH = "models/mobilenetv2_tpu_segmentation_car_real_edgetpu.tflite"
 IMG_SIZE = 224
 
 
