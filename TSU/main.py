@@ -17,59 +17,58 @@ WS_URL = "wss://racesense.dcsteen.com/ws/coral"
 # Globals to share data between the camera thread and network async loop
 latest_frame_b64 = None
 latest_detection_status = "SCANNING" # Default state
+request_road_update = False
 latest_violation_b64 = None
 
 
 def camera_worker():
     """Runs in a background thread so OpenCV and ML don't block the async network loop."""
-    global latest_frame_b64, latest_detection_status
+    global latest_frame_b64, latest_detection_status, request_road_update  # <--- Add to globals
 
     print("Initializing Vision Pipeline...")
     pipeline = vision.VisionPipeline()
 
     print("Initializing Camera...")
     camera = cv2.VideoCapture(1, cv2.CAP_V4L2)
-
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1240)
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
     while True:
         success, frame = camera.read()
         if success:
-            # 1. Unpack the tuple from vision.py
-            status, violation_frame = pipeline.process_frame(frame)
+
+            # Check if the WebSocket requested an update
+            update_road_now = request_road_update
+            if request_road_update:
+                request_road_update = False  # Immediately reset so we only refresh once!
+
+            # Pass the trigger into the pipeline
+            status, processed_frame = pipeline.process_frame(frame, force_road_update=update_road_now)
+
             latest_detection_status = status
 
-            # 2. If we have a violation frame, use it! Otherwise, use the normal frame.
-            frame_to_encode = violation_frame if violation_frame is not None else frame
+            # Dynamically adjust quality
+            img_quality = 80 if status == "VIOLATION" else 50
 
-            # 3. Boost the JPEG quality if it's a violation so the masks look sharp
-            img_quality = 80 if violation_frame is not None else 40
-
-            ret, buffer = cv2.imencode('.jpg', frame_to_encode, [cv2.IMWRITE_JPEG_QUALITY, img_quality])
+            ret, buffer = cv2.imencode('.jpg', processed_frame, [cv2.IMWRITE_JPEG_QUALITY, img_quality])
             if ret:
                 latest_frame_b64 = base64.b64encode(buffer).decode('utf-8')
-
-            # 3. If a violation occurred, encode the transparent overlay!
-            if violation_frame is not None:
-                # You can use a higher quality for the violation snapshot since it happens rarely
-                v_ret, v_buffer = cv2.imencode('.jpg', violation_frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
-                if v_ret:
-                    latest_violation_b64 = base64.b64encode(v_buffer).decode('utf-8')
 
 
 async def listen_to_ws(ws, mqtt_client):
     """Listens for incoming messages from the Digital Ocean WebSocket."""
+    global request_road_update  # <--- Pull in the global variable
+
     try:
         async for message in ws:
             cloud_data = json.loads(message)
             print(f"Cloud sent: {cloud_data}")
 
-
             if cloud_data['type'] == 'flag_change':
                 await mqtt_client.publish("flag/TSU", payload=cloud_data["color"].upper())
-            # Example: Forward cloud command to MQTT
-            # await mqtt_client.publish("commands/from_cloud", payload=json.dumps(cloud_data))
+
+                request_road_update = True
+                print("Flag changed: Requested road mask refresh.")
 
     except websockets.exceptions.ConnectionClosed:
         print("WebSocket connection closed from the server.")
