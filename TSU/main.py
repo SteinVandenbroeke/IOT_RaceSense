@@ -17,36 +17,37 @@ WS_URL = "wss://racesense.dcsteen.com/ws/coral"
 # Globals to share data between the camera thread and network async loop
 latest_frame_b64 = None
 latest_detection_status = "SCANNING" # Default state
+latest_violation_b64 = None
 
 def camera_worker():
-    """Runs in a background thread so OpenCV and ML don't block the async network loop."""
-    global latest_frame_b64, latest_detection_status
+    global latest_frame_b64, latest_detection_status, latest_violation_b64 # <-- Add to global
 
     print("Initializing Vision Pipeline...")
     pipeline = vision.VisionPipeline()
 
     print("Initializing Camera...")
     camera = cv2.VideoCapture(1, cv2.CAP_V4L2)
-
-    # Optional: Lower resolution to save bandwidth
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1240)
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
     while True:
         success, frame = camera.read()
         if success:
-            # 1. Run the ML Inference on the current frame
-            # This updates the global status to NO_CAR, CLEAR, or VIOLATION
-            latest_detection_status = pipeline.process_frame(frame)
+            # 1. Unpack the tuple from vision.py
+            status, violation_frame = pipeline.process_frame(frame)
+            latest_detection_status = status
 
-            # 2. Compress and Encode
-            # Because the frame is smaller, this takes a fraction of the CPU time
+            # 2. Encode normal live feed (Low quality to save bandwidth)
             ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 40])
             if ret:
-                # Convert the raw bytes to a base64 string so it can be sent in JSON
                 latest_frame_b64 = base64.b64encode(buffer).decode('utf-8')
 
-    # --- WebSocket & MQTT Listeners ---
+            # 3. If a violation occurred, encode the transparent overlay!
+            if violation_frame is not None:
+                # You can use a higher quality for the violation snapshot since it happens rarely
+                v_ret, v_buffer = cv2.imencode('.jpg', violation_frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                if v_ret:
+                    latest_violation_b64 = base64.b64encode(v_buffer).decode('utf-8')
 
 
 async def listen_to_ws(ws, mqtt_client):
@@ -110,20 +111,30 @@ async def listen_to_mqtt(ws, mqtt_client):
 
 
 async def stream_camera_to_ws(ws):
-    """Periodically grabs the latest camera frame & ML status and sends it."""
-    global latest_frame_b64, latest_detection_status
+    global latest_frame_b64, latest_detection_status, latest_violation_b64 # <-- Add to global
 
     try:
         while True:
-            if latest_frame_b64:
+            # 1. Prioritize sending a violation image if one exists
+            if latest_violation_b64:
+                payload = {
+                    "type": "violation_event",   # A special type your server can listen for
+                    "image": latest_violation_b64,
+                    "detection": "VIOLATION"
+                }
+                await ws.send(json.dumps(payload))
+                latest_violation_b64 = None  # Clear it so we don't send it twice
+
+            # 2. Send the normal live stream
+            elif latest_frame_b64:
                 payload = {
                     "type": "video_frame",
                     "image": latest_frame_b64,
-                    "detection": latest_detection_status # <-- NOW SENDS THE REAL ML STATUS
+                    "detection": latest_detection_status
                 }
                 await ws.send(json.dumps(payload))
 
-            # Send at roughly 10 FPS (0.1s delay) to avoid flooding the server
+            # Send at roughly 10 FPS
             await asyncio.sleep(0.1)
 
     except websockets.exceptions.ConnectionClosed:

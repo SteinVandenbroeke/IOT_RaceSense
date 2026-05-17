@@ -51,15 +51,7 @@ class EdgeTPUSegmentationModel:
 
     def predict(self, input_tensor):
         self.interpreter.set_tensor(self.input_details['index'], input_tensor)
-
-        # --- TIMING BLOCK ---
-        start_time = time.perf_counter()
         self.interpreter.invoke()
-        end_time = time.perf_counter()
-
-        ms_taken = (end_time - start_time) * 1000
-        print(f"Model Execution Time: {ms_taken:.2f} ms")
-        # --------------------
 
         output_data = self.interpreter.get_tensor(self.output_details['index'])[0]
 
@@ -95,19 +87,17 @@ class VisionPipeline:
         # 1. Convert OpenCV BGR to RGB
         frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
 
-        # 2. Process CAR first (Runs every frame)
+        # 2. Process CAR
         in_car = self.car_model.preprocess(frame_rgb)
         raw_car = self.car_model.predict(in_car)
-        # final_car = post_process_mask(raw_car)
 
-        # 3. Early Exit: If no car, don't waste time on the road model!
-        # (Using cv2.countNonZero is slightly faster than np.count_nonzero)
+        # 3. Early Exit
         car_pixels = cv2.countNonZero(raw_car)
         if car_pixels <= 10:
             self.frame_counter += 1
-            return "SCANNING"
+            return "SCANNING", None  # <--- RETURN NONE FOR IMAGE
 
-        # 4. Process ROAD only if missing OR if it's time for an update
+        # 4. Process ROAD
         if self.cached_road_mask is None or self.frame_counter % self.road_update_interval == 0:
             in_road = self.road_model.preprocess(frame_rgb)
             raw_road = self.road_model.predict(in_road)
@@ -118,10 +108,24 @@ class VisionPipeline:
         # 5. Check status against the cached road mask
         overlap = cv2.bitwise_and(self.cached_road_mask, raw_car)
         overlap_pixels = cv2.countNonZero(overlap)
-
         overlap_ratio = overlap_pixels / car_pixels
 
         if overlap_ratio <= self.overlap_threshold:
-            return "VIOLATION"
+            # --- CREATE THE TRANSPARENT OVERLAY ---
+            h, w = frame_bgr.shape[:2]
 
-        return "CLEAR"
+            # Resize masks back to camera resolution
+            car_mask_resized = cv2.resize(raw_car, (w, h), interpolation=cv2.INTER_NEAREST)
+            road_mask_resized = cv2.resize(self.cached_road_mask, (w, h), interpolation=cv2.INTER_NEAREST)
+
+            color_overlay = frame_bgr.copy()
+            color_overlay[car_mask_resized == 1] = [0, 0, 255]  # Red Car
+            color_overlay[road_mask_resized == 1] = [0, 255, 0]  # Green Road
+
+            # Blend with original frame (50% transparency)
+            alpha = 0.5
+            blended_img = cv2.addWeighted(color_overlay, alpha, frame_bgr, 1 - alpha, 0)
+
+            return "VIOLATION", blended_img  # <--- RETURN THE IMAGE
+
+        return "CLEAR", None  # <--- RETURN NONE FOR IMAGE
