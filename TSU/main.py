@@ -29,8 +29,8 @@ def camera_worker():
     camera = cv2.VideoCapture(1, cv2.CAP_V4L2)
 
     # Optional: Lower resolution to save bandwidth
-    camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1240)
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
     while True:
         success, frame = camera.read()
