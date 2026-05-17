@@ -109,15 +109,13 @@ class VisionPipeline:
 
         # 3. Process ROAD ONLY IF missing OR explicitly forced by the WebSocket
         if self.cached_road_mask is None or force_road_update:
-            print("--- REFRESHING ROAD SEGMENTATION MASK ---")  # Helpful for debugging!
             in_road = self.road_model.preprocess(frame_rgb)
             raw_road = self.road_model.predict(in_road)
 
-            # (Assuming you are using the simplified post_process_mask from earlier)
+            # Use the post_process_mask function to clean up the road mask
             self.cached_road_mask = post_process_mask(raw_road)
 
-        # 3. Early Exit
-        car_pixels = cv2.countNonZero(raw_car)
+        # 4. Calculate Violation Status
         status = "SCANNING"
         if car_pixels > 10:
             overlap = cv2.bitwise_and(self.cached_road_mask, raw_car)
@@ -129,21 +127,5 @@ class VisionPipeline:
             else:
                 status = "CLEAR"
 
-        # 5. --- ALWAYS CREATE THE TRANSPARENT OVERLAY ---
-        h, w = frame_bgr.shape[:2]
-
-        # Resize masks back to camera resolution
-        car_mask_resized = cv2.resize(raw_car, (w, h), interpolation=cv2.INTER_NEAREST)
-        road_mask_resized = cv2.resize(self.cached_road_mask, (w, h), interpolation=cv2.INTER_NEAREST)
-
-        color_overlay = frame_bgr.copy()
-
-        # Apply colors using > 0 to guarantee pixels are caught
-        color_overlay[car_mask_resized > 0] = [0, 0, 255]  # Red Car
-        color_overlay[road_mask_resized > 0] = [0, 255, 0]  # Green Road
-
-        # Blend with original frame (60% opaque so it's clearly visible)
-        alpha = 0.6
-        blended_img = cv2.addWeighted(color_overlay, alpha, frame_bgr, 1 - alpha, 0)
-
-        return status, blended_img
+        # 5. Return status and the raw, original frame (NO MASKS)
+        return status, frame_bgr

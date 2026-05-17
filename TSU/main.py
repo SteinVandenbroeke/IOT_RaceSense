@@ -18,7 +18,6 @@ WS_URL = "wss://racesense.dcsteen.com/ws/coral"
 latest_frame_b64 = None
 latest_detection_status = "SCANNING" # Default state
 request_road_update = False
-latest_violation_b64 = None
 
 
 def camera_worker():
@@ -68,7 +67,6 @@ async def listen_to_ws(ws, mqtt_client):
                 await mqtt_client.publish("flag/TSU", payload=cloud_data["color"].upper())
 
                 request_road_update = True
-                print("Flag changed: Requested road mask refresh.")
 
     except websockets.exceptions.ConnectionClosed:
         print("WebSocket connection closed from the server.")
@@ -118,22 +116,11 @@ async def listen_to_mqtt(ws, mqtt_client):
 
 
 async def stream_camera_to_ws(ws):
-    global latest_frame_b64, latest_detection_status, latest_violation_b64 # <-- Add to global
+    global latest_frame_b64, latest_detection_status
 
     try:
         while True:
-            # 1. Prioritize sending a violation image if one exists
-            if latest_violation_b64:
-                payload = {
-                    "type": "violation_event",   # A special type your server can listen for
-                    "image": latest_violation_b64,
-                    "detection": "VIOLATION"
-                }
-                await ws.send(json.dumps(payload))
-                latest_violation_b64 = None  # Clear it so we don't send it twice
-
-            # 2. Send the normal live stream
-            elif latest_frame_b64:
+            if latest_frame_b64:
                 payload = {
                     "type": "video_frame",
                     "image": latest_frame_b64,
