@@ -63,12 +63,27 @@ class EdgeTPUSegmentationModel:
 
 
 def post_process_mask(binary_mask):
-    kernel_v = np.ones((35, 5), np.uint8)
-    closed_v = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel_v)
-    kernel_h = np.ones((5, 35), np.uint8)
-    closed_h = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel_h)
-    return cv2.bitwise_or(closed_v, closed_h)
+    """
+    Filters the mask to keep ONLY the single largest connected block of pixels,
+    removing any isolated rogue pixels or false positives.
+    """
+    # 1. Find all connected blobs directly on the raw binary mask
+    # connectivity=8 means pixels touching diagonally are considered connected
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
 
+    # 2. Early exit: If num_labels is 1, it means the screen is entirely empty (only background)
+    if num_labels <= 1:
+        return binary_mask
+
+    # 3. Find the largest component (excluding the background!)
+    # The background is always label 0. So we look at areas from index 1 onwards.
+    areas = stats[1:, cv2.CC_STAT_AREA]
+    largest_label = np.argmax(areas) + 1  # Add 1 because we sliced off the background
+
+    # 4. Create a clean mask with ONLY the largest component
+    final_mask = (labels == largest_label).astype(np.uint8)
+
+    return final_mask
 
 class VisionPipeline:
     """Wrapper class to be imported into main.py"""
@@ -96,7 +111,8 @@ class VisionPipeline:
         # 4. Process ROAD
         if self.cached_road_mask is None or self.frame_counter % self.road_update_interval == 0:
             in_road = self.road_model.preprocess(frame_rgb)
-            self.cached_road_mask = self.road_model.predict(in_road)
+            raw_road = self.road_model.predict(in_road)
+            self.cached_road_mask = post_process_mask(raw_road)
 
         # 3. Early Exit
         car_pixels = cv2.countNonZero(raw_car)
