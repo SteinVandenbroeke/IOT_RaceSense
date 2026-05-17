@@ -98,20 +98,22 @@ class VisionPipeline:
         self.road_update_interval = road_update_interval
         self.overlap_threshold = overlap_threshold
 
-    def process_frame(self, frame_bgr):
+    def process_frame(self, frame_bgr, force_road_update=False):
         # 1. Convert OpenCV BGR to RGB
         frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
 
         # 2. Process CAR
         in_car = self.car_model.preprocess(frame_rgb)
         raw_car = self.car_model.predict(in_car)
+        car_pixels = cv2.countNonZero(raw_car)
 
-        self.frame_counter += 1
-
-        # 4. Process ROAD
-        if self.cached_road_mask is None or self.frame_counter % self.road_update_interval == 0:
+        # 3. Process ROAD ONLY IF missing OR explicitly forced by the WebSocket
+        if self.cached_road_mask is None or force_road_update:
+            print("--- REFRESHING ROAD SEGMENTATION MASK ---")  # Helpful for debugging!
             in_road = self.road_model.preprocess(frame_rgb)
             raw_road = self.road_model.predict(in_road)
+
+            # (Assuming you are using the simplified post_process_mask from earlier)
             self.cached_road_mask = post_process_mask(raw_road)
 
         # 3. Early Exit
