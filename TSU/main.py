@@ -19,14 +19,17 @@ latest_frame_b64 = None
 latest_detection_status = "SCANNING" # Default state
 latest_violation_b64 = None
 
+
 def camera_worker():
-    global latest_frame_b64, latest_detection_status, latest_violation_b64 # <-- Add to global
+    """Runs in a background thread so OpenCV and ML don't block the async network loop."""
+    global latest_frame_b64, latest_detection_status
 
     print("Initializing Vision Pipeline...")
     pipeline = vision.VisionPipeline()
 
     print("Initializing Camera...")
     camera = cv2.VideoCapture(1, cv2.CAP_V4L2)
+
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1240)
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
@@ -37,8 +40,13 @@ def camera_worker():
             status, violation_frame = pipeline.process_frame(frame)
             latest_detection_status = status
 
-            # 2. Encode normal live feed (Low quality to save bandwidth)
-            ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 40])
+            # 2. If we have a violation frame, use it! Otherwise, use the normal frame.
+            frame_to_encode = violation_frame if violation_frame is not None else frame
+
+            # 3. Boost the JPEG quality if it's a violation so the masks look sharp
+            img_quality = 80 if violation_frame is not None else 40
+
+            ret, buffer = cv2.imencode('.jpg', frame_to_encode, [cv2.IMWRITE_JPEG_QUALITY, img_quality])
             if ret:
                 latest_frame_b64 = base64.b64encode(buffer).decode('utf-8')
 

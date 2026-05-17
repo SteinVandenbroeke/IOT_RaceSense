@@ -114,18 +114,19 @@ class VisionPipeline:
             # --- CREATE THE TRANSPARENT OVERLAY ---
             h, w = frame_bgr.shape[:2]
 
-            # Resize masks back to camera resolution
             car_mask_resized = cv2.resize(raw_car, (w, h), interpolation=cv2.INTER_NEAREST)
             road_mask_resized = cv2.resize(self.cached_road_mask, (w, h), interpolation=cv2.INTER_NEAREST)
 
             color_overlay = frame_bgr.copy()
-            color_overlay[car_mask_resized == 1] = [0, 0, 255]  # Red Car
-            color_overlay[road_mask_resized == 1] = [0, 255, 0]  # Green Road
 
-            # Blend with original frame (50% transparency)
-            alpha = 0.5
+            # FIX: Use > 0 instead of == 1. This guarantees it catches the mask!
+            color_overlay[car_mask_resized > 0] = [0, 0, 255]  # Red Car
+            color_overlay[road_mask_resized > 0] = [0, 255, 0]  # Green Road
+
+            # Blend with original frame (60% opaque so it's super visible)
+            alpha = 0.6
             blended_img = cv2.addWeighted(color_overlay, alpha, frame_bgr, 1 - alpha, 0)
 
-            return "VIOLATION", blended_img  # <--- RETURN THE IMAGE
+            return "VIOLATION", blended_img
 
-        return "CLEAR", None  # <--- RETURN NONE FOR IMAGE
+        return "CLEAR", None
