@@ -100,9 +100,9 @@
 
     <div>
         <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Dynamics & Position</h2>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
 
-            <div class="col-span-1">
+            <div class="col-span-1 flex justify-center">
                 <GMeter
                     maxG={3}
                     x={activeCar.Accelerometer?.acceleration?.[0] || 0}
@@ -110,24 +110,35 @@
                 />
             </div>
 
-            <div class="col-span-1 lg:col-span-2">
+            <div class="col-span-1 lg:col-span-2 w-full">
                 <TrackWidget demo={true} />
             </div>
-            <div class="col-span-1">
-                <RollPitchCard roll={activeCar.Accelerometer?.roll || 0} pitch={activeCar.Accelerometer?.pitch || 0}></RollPitchCard>
-            </div>
+
         </div>
     </div>
 
-    <div>
-        <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Tyre Status</h2>
-        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-lg">
-            <TireSet
-                layerCount={2}
-                surfaceTemp={activeCar.TempAndHumidity?.temp || { FL: 0, FR: 0, RL: 0, RR: 0 }}
-                pressure={activeCar.PressureAndAltitude?.pressure || { FL: 0, FR: 0, RL: 0, RR: 0 }}
-                speed={activeCar.Speed || { FL: 0, FR: 0, RL: 0, RR: 0 }}
-            />
+    <div class="pt-2">
+        <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Chassis & Tyres</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+
+            <div class="col-span-1 flex flex-col justify-center">
+                <RollPitchCard
+                    roll={activeCar.Accelerometer?.roll || 0}
+                    pitch={activeCar.Accelerometer?.pitch || 0}
+                />
+            </div>
+
+            <div class="col-span-1 lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-lg flex items-center justify-center">
+                <div class="w-full">
+                    <TireSet
+                        layerCount={2}
+                        surfaceTemp={activeCar.TempAndHumidity?.temp || { FL: 0, FR: 0, RL: 0, RR: 0 }}
+                        pressure={activeCar.PressureAndAltitude?.pressure || { FL: 0, FR: 0, RL: 0, RR: 0 }}
+                        speed={activeCar.Speed || { FL: 0, FR: 0, RL: 0, RR: 0 }}
+                    />
+                </div>
+            </div>
+
         </div>
     </div>
 
