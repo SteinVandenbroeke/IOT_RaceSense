@@ -91,42 +91,36 @@ class VisionPipeline:
         in_car = self.car_model.preprocess(frame_rgb)
         raw_car = self.car_model.predict(in_car)
 
-        # 3. Early Exit
-        car_pixels = cv2.countNonZero(raw_car)
-        if car_pixels <= 10:
-            self.frame_counter += 1
-            return "SCANNING", None  # <--- RETURN NONE FOR IMAGE
-
-        # 4. Process ROAD
-        if self.cached_road_mask is None or self.frame_counter % self.road_update_interval == 0:
-            in_road = self.road_model.preprocess(frame_rgb)
-            raw_road = self.road_model.predict(in_road)
-            self.cached_road_mask = post_process_mask(raw_road)
-
         self.frame_counter += 1
 
-        # 5. Check status against the cached road mask
-        overlap = cv2.bitwise_and(self.cached_road_mask, raw_car)
-        overlap_pixels = cv2.countNonZero(overlap)
-        overlap_ratio = overlap_pixels / car_pixels
+        # 3. Early Exit
+        car_pixels = cv2.countNonZero(raw_car)
+        status = "SCANNING"
+        if car_pixels > 10:
+            overlap = cv2.bitwise_and(self.cached_road_mask, raw_car)
+            overlap_pixels = cv2.countNonZero(overlap)
+            overlap_ratio = overlap_pixels / car_pixels
 
-        if overlap_ratio <= self.overlap_threshold:
-            # --- CREATE THE TRANSPARENT OVERLAY ---
-            h, w = frame_bgr.shape[:2]
+            if overlap_ratio <= self.overlap_threshold:
+                status = "VIOLATION"
+            else:
+                status = "CLEAR"
 
-            car_mask_resized = cv2.resize(raw_car, (w, h), interpolation=cv2.INTER_NEAREST)
-            road_mask_resized = cv2.resize(self.cached_road_mask, (w, h), interpolation=cv2.INTER_NEAREST)
+            # 5. --- ALWAYS CREATE THE TRANSPARENT OVERLAY ---
+        h, w = frame_bgr.shape[:2]
 
-            color_overlay = frame_bgr.copy()
+        # Resize masks back to camera resolution
+        car_mask_resized = cv2.resize(raw_car, (w, h), interpolation=cv2.INTER_NEAREST)
+        road_mask_resized = cv2.resize(self.cached_road_mask, (w, h), interpolation=cv2.INTER_NEAREST)
 
-            # FIX: Use > 0 instead of == 1. This guarantees it catches the mask!
-            color_overlay[car_mask_resized > 0] = [0, 0, 255]  # Red Car
-            color_overlay[road_mask_resized > 0] = [0, 255, 0]  # Green Road
+        color_overlay = frame_bgr.copy()
 
-            # Blend with original frame (60% opaque so it's super visible)
-            alpha = 0.6
-            blended_img = cv2.addWeighted(color_overlay, alpha, frame_bgr, 1 - alpha, 0)
+        # Apply colors using > 0 to guarantee pixels are caught
+        color_overlay[car_mask_resized > 0] = [0, 0, 255]  # Red Car
+        color_overlay[road_mask_resized > 0] = [0, 255, 0]  # Green Road
 
-            return "VIOLATION", blended_img
+        # Blend with original frame (60% opaque so it's clearly visible)
+        alpha = 0.6
+        blended_img = cv2.addWeighted(color_overlay, alpha, frame_bgr, 1 - alpha, 0)
 
-        return "CLEAR", None
+        return status, blended_img
