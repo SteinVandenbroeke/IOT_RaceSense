@@ -71,7 +71,7 @@ def post_process_mask(binary_mask):
 class VisionPipeline:
     """Wrapper class to be imported into main.py"""
 
-    def __init__(self, road_update_interval=100):
+    def __init__(self, road_update_interval=100, overlap_threshold=0.05):
         self.road_model = EdgeTPUSegmentationModel(ROAD_MODEL_PATH)
         self.car_model = EdgeTPUSegmentationModel(CAR_MODEL_PATH)
 
@@ -79,6 +79,7 @@ class VisionPipeline:
         self.cached_road_mask = None
         self.frame_counter = 0
         self.road_update_interval = road_update_interval
+        self.overlap_threshold = overlap_threshold
 
     def process_frame(self, frame_bgr):
         # 1. Convert OpenCV BGR to RGB
@@ -91,7 +92,8 @@ class VisionPipeline:
 
         # 3. Early Exit: If no car, don't waste time on the road model!
         # (Using cv2.countNonZero is slightly faster than np.count_nonzero)
-        if cv2.countNonZero(raw_car) == 0:
+        car_pixels = cv2.countNonZero(raw_car)
+        if car_pixels <= 10:
             self.frame_counter += 1
             return "SCANNING"
 
@@ -105,8 +107,11 @@ class VisionPipeline:
 
         # 5. Check status against the cached road mask
         overlap = cv2.bitwise_and(self.cached_road_mask, raw_car)
+        overlap_pixels = cv2.countNonZero(overlap)
 
-        if cv2.countNonZero(overlap) == 0:
+        overlap_ratio = overlap_pixels / car_pixels
+
+        if overlap_ratio <= self.overlap_threshold:
             return "VIOLATION"
 
         return "CLEAR"
