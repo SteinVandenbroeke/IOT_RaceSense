@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import time
 from PIL import Image
 from tflite_runtime.interpreter import Interpreter, load_delegate
 
@@ -50,7 +51,16 @@ class EdgeTPUSegmentationModel:
 
     def predict(self, input_tensor):
         self.interpreter.set_tensor(self.input_details['index'], input_tensor)
+
+        # --- TIMING BLOCK ---
+        start_time = time.perf_counter()
         self.interpreter.invoke()
+        end_time = time.perf_counter()
+
+        ms_taken = (end_time - start_time) * 1000
+        print(f"Model Execution Time: {ms_taken:.2f} ms")
+        # --------------------
+
         output_data = self.interpreter.get_tensor(self.output_details['index'])[0]
 
         if self.output_scale != 0:
