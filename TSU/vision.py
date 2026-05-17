@@ -93,6 +93,11 @@ class VisionPipeline:
 
         self.frame_counter += 1
 
+        # 4. Process ROAD
+        if self.cached_road_mask is None or self.frame_counter % self.road_update_interval == 0:
+            in_road = self.road_model.preprocess(frame_rgb)
+            self.cached_road_mask = self.road_model.predict(in_road)
+
         # 3. Early Exit
         car_pixels = cv2.countNonZero(raw_car)
         status = "SCANNING"
@@ -106,7 +111,7 @@ class VisionPipeline:
             else:
                 status = "CLEAR"
 
-            # 5. --- ALWAYS CREATE THE TRANSPARENT OVERLAY ---
+        # 5. --- ALWAYS CREATE THE TRANSPARENT OVERLAY ---
         h, w = frame_bgr.shape[:2]
 
         # Resize masks back to camera resolution
