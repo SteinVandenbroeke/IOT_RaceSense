@@ -26,15 +26,25 @@ class EdgeTPUSegmentationModel:
         self.output_scale, self.output_zero_point = self.output_details['quantization']
 
     def preprocess(self, frame_rgb):
-        """Converts an OpenCV live frame (RGB array) into the TFLite tensor."""
+        # 1. Fast resize using OpenCV
         img_resized = cv2.resize(frame_rgb, (IMG_SIZE, IMG_SIZE), interpolation=cv2.INTER_LINEAR)
 
-        input_data = np.array(img_resized, dtype=np.float32)
-        input_data = (input_data / 127.5) - 1.0
+        # 2. INT8 FAST PATH: Bypass all float32 division!
+        # If your model takes int8 (-128 to 127) and the image is uint8 (0 to 255):
+        if self.input_details['dtype'] == np.int8:
+            # Shift the uint8 range down to int8 range using fast numpy integer math
+            input_data = np.clip(img_resized.astype(np.int16) - 128, -128, 127).astype(np.int8)
+            return np.expand_dims(input_data, axis=0)
 
-        if self.input_scale != 0:
-            input_data = (input_data / self.input_scale) + self.input_zero_point
-            input_data = np.clip(input_data, -128, 127).astype(np.int8)
+        # 3. UINT8 FAST PATH (if your model takes 0-255 natively)
+        elif self.input_details['dtype'] == np.uint8:
+            return np.expand_dims(img_resized, axis=0)
+
+        # Fallback (Only if you are accidentally using an unquantized float model)
+        else:
+            input_data = np.array(img_resized, dtype=np.float32)
+            input_data = (input_data / 127.5) - 1.0
+            return np.expand_dims(input_data, axis=0)
 
         return np.expand_dims(input_data, axis=0)
 
@@ -77,11 +87,11 @@ class VisionPipeline:
         # 2. Process CAR first (Runs every frame)
         in_car = self.car_model.preprocess(frame_rgb)
         raw_car = self.car_model.predict(in_car)
-        final_car = post_process_mask(raw_car)
+        # final_car = post_process_mask(raw_car)
 
         # 3. Early Exit: If no car, don't waste time on the road model!
         # (Using cv2.countNonZero is slightly faster than np.count_nonzero)
-        if cv2.countNonZero(final_car) == 0:
+        if cv2.countNonZero(raw_car) == 0:
             self.frame_counter += 1
             return "SCANNING"
 
@@ -94,7 +104,7 @@ class VisionPipeline:
         self.frame_counter += 1
 
         # 5. Check status against the cached road mask
-        overlap = cv2.bitwise_and(self.cached_road_mask, final_car)
+        overlap = cv2.bitwise_and(self.cached_road_mask, raw_car)
 
         if cv2.countNonZero(overlap) == 0:
             return "VIOLATION"

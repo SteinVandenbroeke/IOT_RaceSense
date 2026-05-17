@@ -26,12 +26,11 @@ def camera_worker():
     pipeline = vision.VisionPipeline()
 
     print("Initializing Camera...")
-    # NOTE: If this gives you a white screen, change `0` to `gstreamer_pipeline, cv2.CAP_GSTREAMER`
     camera = cv2.VideoCapture(1, cv2.CAP_V4L2)
 
     # Optional: Lower resolution to save bandwidth
-    camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
     while True:
         success, frame = camera.read()
@@ -40,14 +39,12 @@ def camera_worker():
             # This updates the global status to NO_CAR, CLEAR, or VIOLATION
             latest_detection_status = pipeline.process_frame(frame)
 
-            # 2. Compress the image to JPEG for WebSocket
-            ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
+            # 2. Compress and Encode
+            # Because the frame is smaller, this takes a fraction of the CPU time
+            ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 40])
             if ret:
                 # Convert the raw bytes to a base64 string so it can be sent in JSON
                 latest_frame_b64 = base64.b64encode(buffer).decode('utf-8')
-
-        # Small sleep to prevent maxing out the CPU
-        time.sleep(0.03)
 
     # --- WebSocket & MQTT Listeners ---
 
