@@ -27,8 +27,14 @@ class CarData:
         while self.inf_fetching:
             self.sensorData[sensor.name] = sensor.get()
             crash_detector.checkAndProcess(self.sensorData)
+            time.sleep(0.01)
 
         print("__infGetAccelerometer done")
+
+    def __infCrashDetection(self, crash_detector: CarStateDetection):
+        while(True):
+            crash_detector.checkAndProcess(self.sensorData)
+            time.sleep(0.1)
 
     def off_threaded_sensor_fetching(self, state):
         if state:
@@ -36,17 +42,19 @@ class CarData:
             self.sensorData = {}
             for sensor in self.sensors:
                 _thread.start_new_thread(self.__infUpdateData, (sensor, self.crashDetection,))
+            #_thread.start_new_thread(self.__infCrashDetection, (self.crashDetection,))
+            
         else:
             self.inf_fetching = False
             self.stop_signal.set()
     
     def get(self):
         if self.inf_fetching:
-            self.sensorData["time"] = time_tracker.check_uptime()
+            self.sensorData["Time"] = time_tracker.check_uptime()
             car_data = self.sensorData
         else:
             car_data = {
-                "time": time_tracker.check_uptime(),
+                "Time": time_tracker.check_uptime(),
                 "Accelerometer": self.__getAccelerometer(),
                 "TempAndHumidity": self.__getTempAndHumidity(),
                 "PressureAndAltitude": self.__getPressureAndAltitude()

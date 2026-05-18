@@ -1,6 +1,7 @@
 import pycom
 import time
-
+import _thread
+import CarId
 
 class CriticalCarSequence:
     def sequense(self):
@@ -55,10 +56,23 @@ class Crash_HardCarFlip(CriticalCarSequence):
 
 class CarStateDetection:
     def __init__(self):
+        self.CrashSequencesObjects = []
         self.crashSequences = []
         self.crashed = False
+        self.flag = None
+        self.conn = None
+        _thread.start_new_thread(self.crashSignal, ())
     
+    def add_flag(self, flag):
+        self.flag = flag
+
+    def add_conn(self, conn):
+        self.conn = conn
+        self.conn.add_topic_callback("crash/TSU/OBU/" + str(CarId.getCarId()), self.remoteChangeCrashState)
+        self.conn.add_topic_callback("flag/TSU", self.remoteChangeCrashState)
+
     def add_crash_sequense(self, sequence: CrashSequence):
+        self.CrashSequencesObjects.append(sequence)
         self.crashSequences.append(sequence.sequense())
 
     def check(self, current_sensor_data):
@@ -79,7 +93,7 @@ class CarStateDetection:
 
                     if condition_value and conditionStep["first"] == None:
                         print("OVerwrite first")
-                        conditionStep["first"] = current_sensor_data["time"]
+                        conditionStep["first"] = current_sensor_data["Time"]
                         conditionStep["noiseCountDown"] = conditionStep["noiseCount"]
                     elif not condition_value and "noiseCountDown" in conditionStep.keys():
                         if conditionStep["noiseCountDown"] == 0:
@@ -87,7 +101,7 @@ class CarStateDetection:
                         else:
                             conditionStep["noiseCountDown"] -= 1
 
-                    if condition_value and (conditionStep["min_duration"] == -1 or (conditionStep["first"] is not None and conditionStep["min_duration"] < abs(conditionStep["first"] - current_sensor_data["time"]))):
+                    if condition_value and (conditionStep["min_duration"] == -1 or (conditionStep["first"] is not None and conditionStep["min_duration"] < abs(conditionStep["first"] - current_sensor_data["Time"]))):
                         conditionStep["state"] = True
 
                     if not conditionStep["state"]:
@@ -98,16 +112,63 @@ class CarStateDetection:
                 return True
         return False
     
+    def remoteChangeCrashState(self, topic, msg):
+        decoded_topic = topic.decode('utf-8')
+        if "flag/" in decoded_topic:
+            decoded_msg = msg.decode('utf-8')
+            if decoded_msg == "GREEN":
+                self.crashSequences = []
+                for crashSequenceObject in self.CrashSequencesObjects:
+                    self.crashSequences.append(crashSequenceObject.sequense())
+                self.crashed = False
+
+        if "crash/TSU/OBU/" not in decoded_topic:
+            return
+        
+        decoded_msg = msg.decode('utf-8')
+        
+        print("\n--- INCOMING DIRECTIVE ---")
+        print("Topic:")
+        print("Change crash state")
+        
+        pycom.rgbled(0xFFFFFF)  # Red
+        time.sleep(1)
+        pycom.rgbled(0x000000)
+        time.sleep(1)
+        
+        if decoded_msg == "false" or decoded_msg == "False" or decoded_msg == "FALSE":
+            self.crashed = False
+            #self.flag.set_flag(self.flag.get_flag())
+        elif decoded_msg == "true" or decoded_msg == "True" or decoded_msg == "TRUE":
+            self.crashed = True
+            #self.flag.set_flag("YELLOW")
+
+    def crashSignal(self):
+        loop_exit = False
+        pycom.heartbeat(False)
+        while True:
+            time.sleep(0.1)
+            while self.crashed:
+                pycom.rgbled(self.flag.get_hex_color())  # Red
+                time.sleep(0.5)
+                pycom.rgbled(0xFFFFFF)
+                time.sleep(0.5)
+                loop_exit = True
+            if loop_exit:
+                pycom.rgbled(self.flag.get_hex_color())
+                loop_exit = False
+
     def checkAndProcess(self, current_sensor_data):
         if self.crashed:
             return
         if self.check(current_sensor_data):
+            self.crashed = True
             pycom.heartbeat(False)
-            while True:
-                self.crashed = True
-                pycom.rgbled(0xFF0000)  # Red
-                time.sleep(1)
-                pycom.rgbled(0x000000)
-                time.sleep(1)
-                print("CRASH!")
-                
+            print("Sendout yellow flag")
+            #self.crashed = True
+            #pycom.rgbled(0xFF0000)  # Red
+            #time.sleep(1)
+            #pycom.rgbled(0xFFFF00)
+            #time.sleep(1)
+            if self.flag and self.flag.get_flag() != "YELLOW":
+                self.flag.set_flag("YELLOW")
