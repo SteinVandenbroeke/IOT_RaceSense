@@ -129,7 +129,7 @@ async def stream_camera_to_ws(ws):
                 await ws.send(json.dumps(payload))
 
             # Send at roughly 10 FPS
-            # await asyncio.sleep(0.1)
+            await asyncio.sleep(0.1)
 
     except websockets.exceptions.ConnectionClosed:
         print("WebSocket disconnected while trying to send Video data.")
