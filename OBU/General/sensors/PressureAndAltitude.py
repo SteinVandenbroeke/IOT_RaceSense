@@ -14,11 +14,11 @@ class PressureAndAltitude(Sensor):
         self.name = "PressureAndAltitude"
 
     def get(self):
-        pressuere = self.pressure.pressure()
+        pressure = self.pressure.pressure()
         altitude = self.altitude.altitude()
         data = {
             "timestamp": time_tracker.check_uptime(),
-            "pressuere": pressuere,
+            "pressure": pressure,
             "altitude": altitude
         }
         return data

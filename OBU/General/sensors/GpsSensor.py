@@ -10,7 +10,6 @@ class GPSSensor():
 
     def get(self):
         coord = self.gps.coordinates(debug=True)
-        print("coord {}".format(coord))
         data = {
             "timestamp": time_tracker.check_uptime(),
             "gps": self.gps.coordinates(),
