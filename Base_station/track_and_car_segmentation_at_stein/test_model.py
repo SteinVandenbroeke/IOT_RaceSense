@@ -10,9 +10,9 @@ import glob
 import os
 
 # --- Configuration ---
-MODEL_PATH = "mobilenetv2_tpu_segmentation.tflite"
-TEST_IMAGE_DIR = "output_car/rgb/val"
-TEST_MASK_DIR = "output_car/masks/val"
+MODEL_PATH = "../../TSU/models/mobilenetv2_tpu_segmentation_car_real.tflite"
+TEST_IMAGE_DIR = "../manual_dataset/manual_car_dataset/rgb/val"
+TEST_MASK_DIR = "../manual_dataset/manual_car_dataset/masks/val"
 IMG_SIZE = 224
 
 # --- 1. Load the TFLite Model ---
@@ -161,6 +161,6 @@ else:
             print(f"  -> Warning: No matching ground truth mask found at {mask_path}")
 
         # 4. Save output
-        save_name = f"output1/result_5panel_{base_name}.png"
+        save_name = f"output/result_5panel_{base_name}.png"
         display_results(original_resized, ground_truth_mask, raw_predicted_mask, processed_mask, save_name)
         print(f"  -> Saved prediction to {save_name}")

@@ -14,7 +14,7 @@ def main():
     print("Starting training...")
     results = model.train(
         data='carla_yolo_dataset/carla_dataset.yaml',  # Points to your dataset config
-        epochs=20,  # Combined epochs from your old config
+        epochs=50,  # Combined epochs from your old config
         imgsz=320,  # 320x320 optimal for Edge TPU
         batch=16,  # Batch size
         pose=2.0,  # Equivalent to your LAMBDA_KPT=2.0

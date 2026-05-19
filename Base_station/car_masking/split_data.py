@@ -3,7 +3,7 @@ import random
 import shutil
 
 # Configuration
-BASE_DIR = "output_car"
+BASE_DIR = "../manual_dataset/manual_car_dataset"
 IMG_DIR = os.path.join(BASE_DIR, "rgb")
 MASK_DIR = os.path.join(BASE_DIR, "masks")
 SPLIT_RATIO = 0.8  # 80% for training, 20% for validation

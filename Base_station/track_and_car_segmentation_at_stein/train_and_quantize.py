@@ -1,7 +1,9 @@
-import tensorflow as tf
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+import tensorflow as tf
 import glob
 import ssl
+import matplotlib.pyplot as plt
 import urllib.request
 import numpy as np
 
@@ -10,7 +12,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 # ==========================================
 # 1. SETUP DATA PIPELINE
 # ==========================================
-BASE_DIR = 'output_car'
+BASE_DIR = 'carla_road_dataset'
 IMG_SIZE = 224
 BATCH_SIZE = 16
 
@@ -89,13 +91,12 @@ val_dataset = create_dataset(os.path.join(BASE_DIR, 'rgb/val'), os.path.join(BAS
 # 2. BUILD EDGE TPU-SAFE U-NET
 # ==========================================
 def tpu_upsample_block(filters, kernel_size):
-    """Edge TPU compatible upsampling block using UpSampling2D + SeparableConv2D"""
     result = tf.keras.Sequential()
+    # Bilinear mapping perfectly targets the Edge TPU's native RESIZE_BILINEAR op
     result.add(tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear'))
-    result.add(tf.keras.layers.SeparableConv2D(
-        filters, kernel_size, padding='same', use_bias=False))
-    result.add(tf.keras.layers.BatchNormalization())
-    result.add(tf.keras.layers.ReLU())  # Edge TPU prefers standard ReLU
+    result.add(tf.keras.layers.Conv2D(
+        filters, kernel_size, padding='same', use_bias=True))
+    result.add(tf.keras.layers.ReLU())
     return result
 
 
@@ -129,17 +130,19 @@ def build_tpu_unet():
         tpu_upsample_block(32, 3),  # 56x56 -> 112x112
     ]
 
-    for up, skip in zip(up_stack, skips):
+    for up in up_stack:
         x = up(x)
-        concat = tf.keras.layers.Concatenate()
-        x = concat([x, skip])
 
-    # Final block to reach 224x224
+        # Use bilinear upsampling here as well
     x = tf.keras.layers.UpSampling2D(size=(2, 2), interpolation='bilinear')(x)
-    x = tf.keras.layers.SeparableConv2D(16, 3, padding='same', activation='relu')(x)
+    x = tf.keras.layers.Conv2D(16, 3, padding='same', activation='relu')(x)
 
-    # Prediction layer (1 channel for Line vs Background)
-    last = tf.keras.layers.Conv2D(1, 1, padding='same', activation='sigmoid')
+    # Prediction layer (raw logits for stable loss, as fixed previously)
+    last = tf.keras.layers.Conv2D(
+        1, 1,
+        padding='same',
+        activation=None
+    )
     x = last(x)
 
     return tf.keras.Model(inputs=inputs, outputs=x)
@@ -150,17 +153,19 @@ model = build_tpu_unet()
 # ==========================================
 # 3. TRAIN THE MODEL
 # ==========================================
-def bce_dice_loss(y_true, y_pred):
+def bce_dice_loss(y_true, y_pred_logits):
     """
-    Combines Binary Cross Entropy (pixel accuracy) with Dice Loss (spatial overlap).
-    Perfect for large contiguous shapes like full road segmentation.
+    Updated to accept RAW LOGITS from the model.
+    Applies sigmoid activation internally for stable mathematical calculations.
     """
-    # 1. Compute standard Binary Cross Entropy
-    bce = tf.keras.losses.binary_crossentropy(y_true, y_pred)
+    # 1. Compute standard Binary Cross Entropy safely from logits
+    bce = tf.keras.losses.binary_crossentropy(y_true, y_pred_logits, from_logits=True)
     bce_loss = tf.reduce_mean(bce)
 
-    # 2. Compute Dice Loss
-    # Flatten tensors to compute overlap across the entire batch
+    # 2. Apply Sigmoid internally JUST for the Dice Loss calculation
+    y_pred = tf.math.sigmoid(y_pred_logits)
+
+    # Flatten tensors to compute overlap
     y_true_f = tf.reshape(y_true, [-1])
     y_pred_f = tf.reshape(y_pred, [-1])
 
@@ -173,62 +178,57 @@ def bce_dice_loss(y_true, y_pred):
     # Combine both losses
     return bce_loss + dice_loss
 
-
 # Compile using our new loss function
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
     loss=bce_dice_loss,
-    # BinaryIoU automatically applies a 0.5 threshold to your sigmoid output
-    metrics=[tf.keras.metrics.BinaryIoU(target_class_ids=[1], threshold=0.5, name='road_iou')]
+    metrics=[tf.keras.metrics.BinaryIoU(target_class_ids=[1], threshold=0.0, name='road_iou')]
 )
 
+callbacks = [
+    tf.keras.callbacks.ModelCheckpoint(
+        filepath='road_simulator_model.keras',
+        monitor='val_road_iou',
+        mode='max',
+        save_best_only=True,
+        verbose=1
+    )
+]
+
 print("Training model...")
-model.fit(train_dataset, epochs=120, validation_data=val_dataset)
+history = model.fit(train_dataset, epochs=120, validation_data=val_dataset, callbacks=callbacks)
 
-# ==========================================
-# 4. QUANTIZE FOR EDGE TPU (INT8)
-# ==========================================
-print("Quantizing model to INT8...")
+model.save('road_simulator_model_final.keras')
+print("Saved unquantized Keras models: 'simulator_model.keras' (Best) and 'simulator_model_final.keras' (Last Epoch)")
 
 
-def representative_data_gen():
-    """Provides sample data so TFLite knows how to scale the 8-bit integers"""
-    for input_value, _ in train_dataset.take(50):  # Take 50 batches
-        yield [tf.cast(input_value, tf.float32)]
+print("Generating training graphs...")
 
+# Create a figure with two subplots (1 row, 2 columns)
+plt.figure(figsize=(14, 5))
 
-def augment(img, mask):
-    """
-    Applies perfectly synchronized random rotations and flips to both
-    the image and the mask to prevent overfitting.
-    """
-    # 1. Random 90-degree rotations (0, 90, 180, 270 degrees)
-    k = tf.random.uniform(shape=[], minval=0, maxval=4, dtype=tf.int32)
-    img = tf.image.rot90(img, k)
-    mask = tf.image.rot90(mask, k)
+# --- Plot 1: Loss ---
+plt.subplot(1, 2, 1)
+plt.plot(history.history['loss'], label='Training Loss', color='blue', linewidth=2)
+plt.plot(history.history['val_loss'], label='Validation Loss', color='orange', linewidth=2)
+plt.title('Training and Validation Loss', fontsize=14)
+plt.xlabel('Epoch', fontsize=12)
+plt.ylabel('Loss (BCE + Dice)', fontsize=12)
+plt.legend(loc='upper right')
+plt.grid(True, linestyle='--', alpha=0.7)
 
-    # 2. Random Flips (Using a shared seed so image and mask flip together)
-    seed = tf.random.uniform([2], minval=0, maxval=9999999, dtype=tf.int32)
-    img = tf.image.stateless_random_flip_left_right(img, seed)
-    mask = tf.image.stateless_random_flip_left_right(mask, seed)
+# --- Plot 2: Intersection over Union (IoU) ---
+plt.subplot(1, 2, 2)
+# Note: The metric name matches the one defined in model.compile
+plt.plot(history.history['road_iou'], label='Training IoU', color='blue', linewidth=2)
+plt.plot(history.history['val_road_iou'], label='Validation IoU', color='orange', linewidth=2)
+plt.title('Training and Validation Road IoU', fontsize=14)
+plt.xlabel('Epoch', fontsize=12)
+plt.ylabel('IoU Score', fontsize=12)
+plt.legend(loc='lower right')
+plt.grid(True, linestyle='--', alpha=0.7)
 
-    seed2 = tf.random.uniform([2], minval=0, maxval=9999999, dtype=tf.int32)
-    img = tf.image.stateless_random_flip_up_down(img, seed2)
-    mask = tf.image.stateless_random_flip_up_down(mask, seed2)
-
-    return img, mask
-
-converter = tf.lite.TFLiteConverter.from_keras_model(model)
-converter.optimizations = [tf.lite.Optimize.DEFAULT]
-converter.representative_dataset = representative_data_gen
-
-# Force strict 8-bit integer operations
-converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-converter.inference_input_type = tf.int8
-converter.inference_output_type = tf.int8
-
-tflite_quant_model = converter.convert()
-
-with open("mobilenetv2_tpu_segmentation.tflite", "wb") as f:
-    f.write(tflite_quant_model)
-print("Saved quantized model: mobilenetv2_tpu_segmentation.tflite")
+# Adjust layout and save as a high-resolution image
+plt.tight_layout()
+plt.savefig('training_graphs.png', dpi=300)
+print("Successfully saved training graphs to 'training_graphs.png'")
